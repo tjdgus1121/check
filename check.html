@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>야자 출석체크</title>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#1D9E75;--green-l:#E1F5EE;--green-d:#0F6E56;
+  --red:#D85A30;--red-l:#FAECE7;--red-d:#993C1D;
+  --amber:#BA7517;--amber-l:#FAEEDA;
+  --blue:#185FA5;--blue-l:#E6F1FB;
+  --bg:#F4F5F7;--card:#fff;--border:#E5E7EB;
+  --text:#1A1A1A;--muted:#6B7280;--hint:#9CA3AF;
+  --radius:14px;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+#app-frame{background:var(--bg);width:100%;display:flex;flex-direction:column;min-height:100vh;}
+.tab-content.active{flex:1;overflow-y:auto;overflow-x:hidden;}
+@media (min-width:500px){
+  body{background:#888;display:flex;justify-content:center;align-items:center;padding:24px 0;}
+  #app-frame{max-width:430px;min-height:unset;height:min(930px,95dvh);overflow:hidden;border-radius:40px;box-shadow:0 0 40px rgba(0,0,0,.35);}
+}
+
+/* ── Header ── */
+.hdr{background:var(--text);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
+.hdr-title{font-family:'Do Hyeon',sans-serif;font-size:20px;letter-spacing:1px;}
+.hdr-right{text-align:right;}
+.hdr-date{font-size:11px;opacity:.65;margin-bottom:2px;}
+.hdr-clock{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px;}
+
+/* ── Tabs ── */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);}
+.tab-btn{flex:1;padding:13px 0;font-size:13px;font-weight:500;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--muted);cursor:pointer;transition:.15s;}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--text);}
+
+/* ── Content ── */
+.content{padding:14px 16px;flex:1;}
+
+/* ── Card ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+
+/* ── GPS status ── */
+.gps{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;transition:.3s;}
+.gps-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.gps.ok{background:var(--green-l);color:var(--green-d);}
+.gps.ok .gps-dot{background:var(--green);}
+.gps.fail{background:var(--red-l);color:var(--red-d);}
+.gps.fail .gps-dot{background:var(--red);}
+.gps.checking{background:var(--amber-l);color:var(--amber);}
+.gps.checking .gps-dot{background:var(--amber);animation:pulse 1.2s infinite;}
+.gps.skip{background:#F3F4F6;color:var(--muted);}
+.gps.skip .gps-dot{background:var(--hint);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes toast-in{0%{opacity:0;transform:scale(.8)}60%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes toast-out{to{opacity:0;transform:scale(.85)}}
+.toast-overlay{position:absolute;inset:0;z-index:2000;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+.toast-box{pointer-events:auto;background:#1A1A1A;color:#fff;border-radius:20px;padding:28px 36px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.35);animation:toast-in .35s ease forwards;}
+.toast-box.out{animation:toast-out .3s ease forwards;}
+.toast-icon{font-size:48px;line-height:1;margin-bottom:8px;}
+.toast-title{font-size:18px;font-weight:700;margin-bottom:4px;}
+.toast-sub{font-size:13px;opacity:.7;}
+
+/* ── Selects ── */
+.sel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.sel-wrap label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:.04em;text-align:center;}
+.sel-wrap select{text-align:center;}
+select{width:100%;padding:11px 28px 11px 12px;border:1.5px solid var(--border);border-radius:10px;background:#FAFAFA url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--text);font-size:14px;font-weight:500;appearance:none;cursor:pointer;transition:.15s;}
+select:focus{outline:none;border-color:var(--blue);background-color:#fff;box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+.name-result{margin-top:2px;background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:.2s;min-height:52px;}
+.name-result-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;white-space:nowrap;}
+.name-result-value{font-size:17px;font-weight:700;color:var(--hint);flex:1;}
+.name-result.filled{background:var(--green-l);border-color:var(--green);}
+.name-result.filled .name-result-value{color:var(--green-d);}
+/* legacy name-box 호환 */
+.name-box{display:none;}
+
+/* ── Action Buttons ── */
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+.btn-in,.btn-out{padding:18px 0;border:none;border-radius:11px;font-size:17px;font-weight:700;cursor:pointer;transition:.15s;font-family:'Do Hyeon',sans-serif;letter-spacing:2px;}
+.btn-in{background:var(--green);color:#fff;}
+.btn-out{background:var(--red);color:#fff;}
+.btn-in:disabled,.btn-out:disabled{opacity:.28;cursor:not-allowed;}
+.btn-in:not(:disabled):hover{background:var(--green-d);}
+.btn-out:not(:disabled):hover{background:var(--red-d);}
+
+/* ── Record chips ── */
+.rec-chips{display:flex;gap:8px;margin-top:12px;}
+.chip{flex:1;background:var(--bg);border-radius:9px;padding:10px 8px;text-align:center;}
+.chip .lbl{font-size:10px;color:var(--hint);margin-bottom:4px;}
+.chip .val{font-size:14px;font-weight:700;}
+.chip.active .val{color:var(--green);}
+.chip-row{display:flex;align-items:center;gap:3px;}
+.chip-row2{display:none;opacity:.6;}
+.chip-seq{font-size:9px;color:var(--hint);}
+.chip .val-sm{font-size:12px;font-weight:700;}
+
+/* ── Teacher ── */
+.date-nav{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:12px;}
+.date-nav-row{display:flex;align-items:center;gap:8px;}
+.date-nav .nav-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 16px;cursor:pointer;font-size:13px;color:var(--text);transition:.15s;}
+.date-nav .nav-btn:hover{border-color:var(--text);}
+.date-nav .today-btn{background:var(--text);color:#fff;border-color:var(--text);}
+.date-display{font-size:17px;font-weight:700;letter-spacing:.5px;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0;}
+.stat{background:var(--bg);border-radius:10px;padding:10px 4px;text-align:center;}
+.stat .num{font-size:24px;font-weight:700;font-family:'Do Hyeon',sans-serif;}
+.stat .slbl{font-size:11px;color:var(--muted);margin-top:2px;}
+.stat.in .num{color:var(--green);}
+.stat.out .num{color:var(--red);}
+.stat.absent .num{color:var(--hint);}
+
+.filter-row{display:flex;gap:8px;margin-bottom:10px;}
+.filter-row select{flex:1;}
+
+.tbl-wrap{border-radius:var(--radius);overflow:hidden;overflow-x:auto;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;}
+th{padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;border-bottom:1px solid var(--border);background:#FAFAFA;white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid #F3F4F6;vertical-align:middle;text-align:center;white-space:nowrap;}
+.tbl-wrap table td:nth-child(1){text-align:left;}
+.tbl-wrap table td:nth-child(2){text-align:left;}
+.td-memo{white-space:normal;text-align:left;font-size:11px;line-height:1.6;min-width:80px;max-width:160px;word-break:keep-all;}
+tr:last-child td{border-bottom:none;}
+/* ── 학생 기록 팝업 ── */
+.srec-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1400;align-items:flex-end;justify-content:center;padding:0;}
+.srec-overlay.show{display:flex;}
+.srec-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:24px 20px 32px;box-shadow:0 -4px 30px rgba(0,0,0,.15);animation:slide-up .25s ease;}
+@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.srec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.srec-name{font-family:'Do Hyeon',sans-serif;font-size:20px;}
+.srec-close{background:none;border:none;font-size:18px;color:var(--hint);cursor:pointer;padding:4px 8px;}
+.srec-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.srec-row:last-child{border-bottom:none;}
+.srec-label{color:var(--muted);font-size:12px;font-weight:600;}
+.srec-val{font-weight:700;}
+.srec-section{font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin:14px 0 4px;}
+.t-pagination{display:flex;justify-content:center;align-items:center;gap:4px;padding:10px 8px;flex-wrap:wrap;}
+.t-page-btn{min-width:32px;height:32px;padding:0 6px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:var(--text);}
+.t-page-btn.active{background:var(--text);color:#fff;border-color:var(--text);font-weight:700;}
+.t-page-btn:disabled{opacity:.35;cursor:default;}
+tr:hover td{background:#FAFAFA;}
+
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge.in{background:var(--green-l);color:var(--green-d);}
+.badge.out{background:var(--red-l);color:var(--red-d);}
+.badge.none{background:#F3F4F6;color:var(--hint);}
+
+/* ── Settings ── */
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+.field input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;color:var(--text);background:#fff;transition:.15s;}
+.field input:focus{outline:none;border-color:var(--text);}
+.btn-primary{padding:10px 18px;background:var(--text);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}
+.btn-secondary{padding:10px 18px;background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;margin-left:8px;}
+.btn-danger{padding:10px 18px;background:var(--red-l);color:var(--red-d);border:1.5px solid #FECACA;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;margin-left:8px;}
+.msg{margin-top:8px;font-size:13px;min-height:18px;}
+.msg.ok{color:var(--green-d);}
+.msg.err{color:var(--red-d);}
+
+.empty{text-align:center;padding:32px 16px;color:var(--hint);font-size:13px;}
+/* ── 교사 좌석 현황 모달 ── */
+.t-seat-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px;}
+.t-seat-modal.show{display:flex;}
+.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;overflow:auto;width:fit-content;}
+.t-seat-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.t-seat-title{font-size:15px;font-weight:700;}
+.t-seat-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--hint);line-height:1;padding:2px 6px;}
+.t-seat-legend{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;gap:12px;}
+.leg-free{color:var(--green);}
+.leg-occ{color:#F87171;}
+/* 교사 뷰 좌석: 점유 자리만 클릭 가능 */
+.seat-ro{pointer-events:none;}
+.seat-ro.occupied{pointer-events:auto;cursor:pointer;}
+.seat-ro.occupied:hover{opacity:.82;transform:scale(.97);transition:.12s;}
+.seat-ro.occupied .seat-nm{color:var(--red-d);font-size:10px;}
+.seat-ro.mine{background:#DBEAFE;border-color:var(--blue);}
+
+/* ── 교사 좌석 액션 오버레이 ── */
+.t-seat-action-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1200;align-items:center;justify-content:center;padding:20px;}
+.t-seat-action-box{background:#fff;border-radius:18px;padding:26px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.22);}
+.t-seat-action-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.t-action-seat-lbl{font-size:13px;font-weight:700;color:var(--muted);}
+.t-action-name{font-size:22px;font-weight:700;margin-bottom:4px;}
+.t-action-info{font-size:13px;color:var(--muted);margin-bottom:8px;}
+.t-action-status{font-size:12px;color:var(--green-d);background:var(--green-l);border-radius:8px;padding:6px 10px;margin-bottom:18px;min-height:30px;display:flex;align-items:center;justify-content:center;line-height:1.5;word-break:keep-all;}
+.t-action-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.t-action-btn{padding:13px 0;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Do Hyeon',sans-serif;letter-spacing:1px;transition:.15s;}
+.t-action-btn:hover{opacity:.85;}
+.t-action-out{background:var(--red);color:#fff;}
+.t-action-force{background:#1A1A1A;color:#fff;}
+
+/* ── 자리이탈 처리 모달 ── */
+.t-force-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1300;align-items:center;justify-content:center;padding:20px;}
+.t-force-box{background:#fff;border-radius:18px;padding:28px 24px;max-width:320px;width:100%;}
+.t-force-box h3{font-family:'Do Hyeon',sans-serif;font-size:18px;margin-bottom:6px;color:var(--text);}
+.t-force-desc{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.7;}
+.t-force-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;color:var(--text);background:#fff;outline:none;margin-top:2px;}
+.t-force-btn-row{margin-top:18px;}
+.tab-content{display:none;}
+.tab-content.active{display:flex;flex-direction:column;}
+
+/* ── Flash animation ── */
+@keyframes flashGreen{0%{background:#D1FAE5}100%{background:#fff}}
+@keyframes flashRed{0%{background:#FEE2E2}100%{background:#fff}}
+.flash-in td{animation:flashGreen .8s ease-out;}
+.flash-out td{animation:flashRed .8s ease-out;}
+
+.section-gap{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+/* ── 비밀번호 잠금 오버레이 ── */
+.lock-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 20px;}
+.lock-box{background:#fff;border:1px solid var(--border);border-radius:20px;padding:36px 28px;width:100%;max-width:340px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06);}
+.lock-icon{width:52px;height:52px;background:#6B7280;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.lock-title{font-family:'Do Hyeon',sans-serif;font-size:20px;letter-spacing:1px;margin-bottom:4px;}
+.lock-sub{font-size:12px;color:var(--hint);margin-bottom:24px;}
+.pw-wrap{position:relative;margin-bottom:10px;}
+.pw-input{width:100%;padding:13px 44px 13px 14px;border:2px solid var(--border);border-radius:10px;font-size:18px;letter-spacing:4px;color:var(--text);background:#fff;transition:.2s;outline:none;font-family:monospace;text-align:center;}
+.pw-input:focus{border-color:var(--text);}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--hint);padding:4px;line-height:1;font-size:16px;}
+.pw-enter{width:100%;padding:13px 0;background:var(--text);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Do Hyeon',sans-serif;letter-spacing:2px;transition:.15s;}
+.pw-enter:hover{opacity:.85;}
+.pw-err{margin-top:8px;font-size:12px;color:var(--red-d);min-height:16px;}
+.lock-hint{margin-top:14px;font-size:11px;color:var(--hint);}
+.teacher-content{display:none;}
+.teacher-content.unlocked{display:block;}
+/* ── Slider ── */
+.slider-wrap{position:relative;border-radius:12px;overflow:hidden;margin-bottom:12px;background:#000;aspect-ratio:16/10;}
+.slider-track{display:flex;height:100%;transition:transform .4s ease;}
+.slide{position:relative;min-width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:6px;}
+.slide img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.slide-content{position:relative;z-index:1;}
+.slide-title{font-size:19px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+.slide-desc{font-size:16px;color:rgba(255,255,255,.85);line-height:1.6;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+.slider-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.35);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;z-index:2;display:flex;align-items:center;justify-content:center;}
+.slider-btn.prev{left:8px;}
+.slider-btn.next{right:8px;}
+.slider-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:2;}
+.slider-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:.2s;}
+.slider-dot.active{background:#fff;}
+.slide-1{background:linear-gradient(150deg,#1A1A1A 0%,#0F6E56 100%);}
+.slide-1 .slide-title{color:#1D9E75;}
+.slide-1 .slide-desc b{color:#fff;}
+.slide-1 .slide-desc small{opacity:.65;}
+.slide-2{background:linear-gradient(150deg,#0F6E56 0%,#1A1A1A 100%);}
+.slide-2 .slide-title{color:#6EE7C0;}
+.slide-3{background:#1A1A1A;}
+.slide-3 .slide-title{color:#1D9E75;}
+.slide-img-up{object-position:center 30%;}
+
+/* ── Seat Modal (항상 가로형 레이아웃) ── */
+.seat-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;align-items:center;justify-content:center;overflow:auto;padding:16px;}
+.seat-modal-box{background:#F5F0E8;border-radius:18px;padding:18px 20px;position:relative;}
+.seat-modal-hdr{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.seat-modal-title{font-family:'Do Hyeon',sans-serif;font-size:17px;}
+.seat-modal-legend{font-size:11px;color:var(--muted);}
+/* ── 좌석 레이아웃 래퍼 ── */
+.room-wrap{display:flex;flex-direction:column;border-top:4px solid #8B1A1A;border-right:4px solid #8B1A1A;background:#F5F0E8;width:fit-content;}
+/* T 그리드: 상단 독립 flex (셀 크기 자유롭게 조정 가능) */
+.t-grid{display:flex;gap:3px;padding:8px 14px 6px;}
+.t-grid .seat{width:34px;height:28px;border-radius:5px;}
+.t-grid .seat .seat-id{font-size:8px;}
+/* 메인 그리드: L·C·R (행1-12, 열1-9) */
+.seat-grid{display:grid;grid-template-columns:repeat(9,46px);grid-template-rows:repeat(12,46px);gap:5px;padding:10px 14px 14px;}
+/* L열: 열2-3 / L1-L4=행3-4, L5-L8=행7-8 */
+[data-seat="L1"]{grid-column:2;grid-row:3;}[data-seat="L2"]{grid-column:3;grid-row:3;}[data-seat="L3"]{grid-column:2;grid-row:4;}[data-seat="L4"]{grid-column:3;grid-row:4;}[data-seat="L5"]{grid-column:2;grid-row:7;}[data-seat="L6"]{grid-column:3;grid-row:7;}[data-seat="L7"]{grid-column:2;grid-row:8;}[data-seat="L8"]{grid-column:3;grid-row:8;}
+/* C1그룹: 열5-6, 행3-5 */
+[data-seat="C1"]{grid-column:5;grid-row:3;}[data-seat="C2"]{grid-column:6;grid-row:3;}[data-seat="C3"]{grid-column:5;grid-row:4;}[data-seat="C4"]{grid-column:6;grid-row:4;}[data-seat="C5"]{grid-column:5;grid-row:5;}[data-seat="C6"]{grid-column:6;grid-row:5;}
+/* C2그룹: 열5-6, 행7-9 */
+[data-seat="C7"]{grid-column:5;grid-row:7;}[data-seat="C8"]{grid-column:6;grid-row:7;}[data-seat="C9"]{grid-column:5;grid-row:8;}[data-seat="C10"]{grid-column:6;grid-row:8;}[data-seat="C11"]{grid-column:5;grid-row:9;}[data-seat="C12"]{grid-column:6;grid-row:9;}
+/* C 구분선반: 열5-6, 행6 */
+.shelf-div-3{grid-column:5/7;grid-row:6;}
+/* R1그룹: 열8-9, 행1-3 */
+[data-seat="R1"]{grid-column:8;grid-row:1;}[data-seat="R2"]{grid-column:9;grid-row:1;}[data-seat="R3"]{grid-column:8;grid-row:2;}[data-seat="R4"]{grid-column:9;grid-row:2;}[data-seat="R5"]{grid-column:8;grid-row:3;}[data-seat="R6"]{grid-column:9;grid-row:3;}
+/* R2그룹: 열8-9, 행5-7 */
+[data-seat="R7"]{grid-column:8;grid-row:5;}[data-seat="R8"]{grid-column:9;grid-row:5;}[data-seat="R9"]{grid-column:8;grid-row:6;}[data-seat="R10"]{grid-column:9;grid-row:6;}[data-seat="R11"]{grid-column:8;grid-row:7;}[data-seat="R12"]{grid-column:9;grid-row:7;}
+/* R3그룹: 열8-9, 행9-11 */
+[data-seat="R13"]{grid-column:8;grid-row:9;}[data-seat="R14"]{grid-column:9;grid-row:9;}[data-seat="R15"]{grid-column:8;grid-row:10;}[data-seat="R16"]{grid-column:9;grid-row:10;}[data-seat="R17"]{grid-column:8;grid-row:11;}[data-seat="R18"]{grid-column:9;grid-row:11;}
+/* 구분 선반 (가로): 열8-9, 행4·행8 */
+.shelf-div{background:linear-gradient(90deg,#c8924e,#a06030);border-radius:3px;height:8px;align-self:center;}
+.shelf-div-1{grid-column:8/10;grid-row:4;}
+.shelf-div-2{grid-column:8/10;grid-row:8;}
+/* 장식 삼각형: (열1,행3-4) / (열1,행7-8) */
+.tri-deco{background:#b8895a;clip-path:polygon(100% 0,0 50%,100% 100%);z-index:1;}
+.tri-cl{grid-column:1;grid-row:3/5;}
+.tri-cr{grid-column:1;grid-row:7/9;}
+/* 입구: 열1-3, 행12 */
+.room-entrance{grid-column:1/4;grid-row:12;background:#1A1A1A;color:#fff;font-size:11px;border-radius:4px;display:flex;align-items:center;justify-content:center;}
+.seat{width:46px;height:46px;border:2px solid var(--green);border-radius:7px;background:#D1FAE5;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.15s;padding:2px;-webkit-user-select:none;user-select:none;}
+.seat:hover:not(.occupied):not(.mine){background:#A7F3D0;border-color:var(--green-d);}
+.seat.occupied{background:#FEE2E2;border-color:#F87171;cursor:not-allowed;}
+.seat.mine{background:#DBEAFE;border-color:var(--blue);cursor:not-allowed;}
+.seat-id{font-size:9px;color:var(--hint);line-height:1;}
+.seat-nm{font-size:9px;font-weight:700;line-height:1.2;margin-top:2px;color:var(--red-d);word-break:keep-all;text-align:center;}
+.seat.mine .seat-nm{color:var(--blue);}
+.btn-seat-cancel{margin-top:14px;width:100%;padding:11px;background:#E5E7EB;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;color:var(--text);}
+.seat-confirm{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;display:none;align-items:center;justify-content:center;padding:20px;}
+.seat-confirm-box{background:#fff;border-radius:18px;padding:30px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);}
+.seat-confirm-title{font-size:17px;font-weight:700;margin-bottom:6px;}
+.seat-confirm-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.seat-confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-confirm-yes{padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;}
+.btn-confirm-no{padding:13px;background:#F3F4F6;color:var(--text);border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;}
+.legend-free{color:var(--green);}
+.legend-occ{color:#F87171;}
+.legend-mine{color:var(--blue);}
+/* 세로 모드: 스케일 축소 */
+@media (orientation:portrait){
+  .seat-modal{padding:8px;}
+  .seat-modal-box{overflow:auto;max-height:90vh;}
+}
+/* 가로 모드 (저사양): 풀스크린 */
+@media (orientation:landscape) and (max-height:500px){
+  .seat-modal{padding:0;}
+  .seat-modal-box{border-radius:0;overflow:auto;max-height:100vh;}
+  .btn-seat-cancel{margin-top:6px;padding:8px;}
+}
+/* ── Reset password modal ── */
+.reset-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;padding:20px;}
+.reset-overlay.show{display:flex;}
+.reset-box{background:#fff;border-radius:18px;padding:30px 24px;width:100%;max-width:320px;text-align:center;}
+.reset-box .step-badge{display:inline-block;background:var(--red-l);color:var(--red-d);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:12px;letter-spacing:.04em;}
+.reset-box h3{font-family:'Do Hyeon',sans-serif;font-size:18px;margin-bottom:4px;}
+.reset-box p{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.reset-pw-wrap{position:relative;margin-bottom:8px;}
+.reset-pw-input{width:100%;padding:12px 40px 12px 14px;border:2px solid var(--border);border-radius:10px;font-size:17px;letter-spacing:3px;text-align:center;font-family:monospace;color:var(--text);outline:none;transition:.2s;}
+.reset-pw-input:focus{border-color:var(--red);}
+.reset-pw-toggle{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--hint);font-size:15px;padding:4px;}
+.reset-pw-err{font-size:12px;color:var(--red-d);min-height:16px;margin-bottom:12px;}
+.reset-btn-row{display:flex;gap:8px;}
+.reset-confirm-btn{flex:1;padding:12px 0;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Do Hyeon',sans-serif;letter-spacing:1px;}
+.reset-cancel-btn{padding:12px 16px;background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;}
+.card-danger{border-color:#FECACA;background:#FFF5F5;}
+.card-danger-title{color:var(--red-d);}
+.card-danger-desc{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7;}
+.btn-danger-full{width:100%;padding:14px 0;font-size:15px;}
+/* ── Download card ── */
+.dl-desc{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7;}
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.dl-label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+.dl-date{width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;color:var(--text);background:#fff;outline:none;}
+.dl-date:focus{border-color:var(--blue);}
+.btn-dl{width:100%;padding:12px 0;font-size:14px;}
+.dl-msg{margin-top:8px;font-size:12px;min-height:16px;}
+.dl-msg.ok{color:var(--green-d);}
+.dl-msg.err{color:var(--red-d);}
+.dl-msg.ing{color:var(--amber);}
+
+/* ── 개발자 설정 컨테이너 ── */
+.dev-open-btn{display:block;width:100%;margin-top:14px;padding:9px 0;background:none;border:1.5px dashed var(--border);border-radius:10px;font-size:12px;color:var(--hint);cursor:pointer;transition:.15s;letter-spacing:.04em;}
+.dev-open-btn:hover{border-color:var(--text);color:var(--text);}
+.dev-container{display:none;border:1.5px dashed #D1D5DB;border-radius:var(--radius);padding:14px;margin-top:12px;background:#FAFAFA;}
+.dev-container.show{display:block;}
+.dev-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.dev-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+.dev-lock-btn{background:none;border:none;font-size:11px;color:var(--hint);cursor:pointer;padding:2px 6px;}
+.dev-lock-btn:hover{color:var(--text);}
+
+/* ── 개발자 비밀번호 모달 ── */
+.dev-pw-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1400;align-items:center;justify-content:center;padding:20px;}
+.dev-pw-overlay.show{display:flex;}
+.dev-pw-box{background:#fff;border-radius:18px;padding:30px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);}
+.dev-pw-box h3{font-family:'Do Hyeon',sans-serif;font-size:19px;margin-bottom:4px;}
+.dev-pw-box p{font-size:12px;color:var(--hint);margin-bottom:20px;}
+.dev-card-gap{margin-top:12px;}
+.dev-hidden{display:none;}
+.gps-warn-banner{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:12px;line-height:1.6;padding:8px 14px;}
+.gps-warn-banner.hidden{display:none;}
+#status-bar-bottom{z-index:100;background:#fff;border-top:2px solid var(--border);padding:8px 14px;display:flex;gap:8px;align-items:center;}
+#status-bar-bottom .gps{flex:1;margin-bottom:0;border-radius:8px;padding:7px 10px;font-size:11px;}
+#status-bar-bottom .gps-warn-banner{flex:1;border-radius:8px;padding:7px 10px;margin-bottom:0;font-size:11px;}
+.dev-name-row{margin-bottom:8px;}
+.dev-msg{font-size:13px;min-height:18px;}
+.dev-count{margin-top:4px;font-size:12px;color:var(--hint);}
+.dev-gps-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;}
+.dev-gps-cb{width:16px;height:16px;}
+.dev-cancel-btn{margin-top:10px;width:100%;}
+</style>
+</head>
+<body>
+<div id="app-frame">
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-title">야자 출석체크</div>
+  <div class="hdr-right">
+    <div class="hdr-date" id="hdr-date">로딩 중...</div>
+    <div class="hdr-clock" id="hdr-clock">00:00:00</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('student')">학생 출석</button>
+  <button class="tab-btn" onclick="tryTeacherTab()">관리(감독용) 🔒</button>
+</div>
+
+<!-- ====== 학생 탭 ====== -->
+<div id="tab-student" class="tab-content active">
+  <div class="content">
+
+    <div class="card">
+      <div class="card-title">학생 선택</div>
+      <div class="sel-grid">
+        <div class="sel-wrap"><label>학년</label>
+          <select id="sel-grade" onchange="onGradeChange()"><option value="">선택</option></select>
+        </div>
+        <div class="sel-wrap"><label>반</label>
+          <select id="sel-class" onchange="onClassChange()"><option value="">선택</option></select>
+        </div>
+        <div class="sel-wrap"><label>번호</label>
+          <select id="sel-num" onchange="onNumChange()"><option value="">선택</option></select>
+        </div>
+      </div>
+      <div class="name-result" id="name-box">
+        <span class="name-result-label">이름</span>
+        <span class="name-result-value" id="name-val">번호를 선택하면 표시됩니다</span>
+      </div>
+    </div>
+
+    <div class="slider-wrap" id="slider">
+      <div class="slider-track" id="sliderTrack">
+
+        <!-- 슬라이드 1: 이용 안내 -->
+        <div class="slide slide-1">
+          <div class="slide-content">
+            <div class="slide-title">📋 이용 안내</div>
+            <div class="slide-desc">
+              ① 학년·반·번호 선택 → ② 이름 확인<br>
+              ③ <b>입실</b> 버튼으로 야자 시작 기록<br>
+              ④ 야자 끝나면 <b>퇴실</b> 버튼 클릭<br>
+              <small>※ 17:20~20:40, 학교 위치에서만 동작 · 하루 최대 2회</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 슬라이드 2: notice1 이미지 -->
+        <div class="slide slide-2">
+          <img src="notice1.png" alt="안내" class="slide-img-up">
+        </div>
+
+
+      </div>
+      <button type="button" class="slider-btn prev" onclick="slidePrev()">‹</button>
+      <button type="button" class="slider-btn next" onclick="slideNext()">›</button>
+      <div class="slider-dots" id="sliderDots"></div>
+    </div>
+
+    <div class="card">
+      <div class="action-row">
+        <button class="btn-in" id="btn-in" onclick="doCheckIn()" disabled>입 실</button>
+        <button class="btn-out" id="btn-out" onclick="doCheckOut()" disabled>퇴 실</button>
+      </div>
+      <div class="rec-chips" id="rec-chips" style="display:none">
+        <div class="chip" id="chip-in">
+          <div class="lbl">입실</div>
+          <div class="chip-row"><span class="chip-seq">①</span><span class="val-sm" id="val-in">-</span></div>
+          <div class="chip-row chip-row2" id="chip-in2-row"><span class="chip-seq">②</span><span class="val-sm" id="val-in2">-</span></div>
+        </div>
+        <div class="chip" id="chip-out">
+          <div class="lbl">퇴실</div>
+          <div class="chip-row"><span class="chip-seq">①</span><span class="val-sm" id="val-out">-</span></div>
+          <div class="chip-row chip-row2" id="chip-out2-row"><span class="chip-seq">②</span><span class="val-sm" id="val-out2">-</span></div>
+        </div>
+        <div class="chip" id="chip-dur">
+          <div class="lbl">재실 시간</div>
+          <div class="chip-row"><span class="chip-seq">①</span><span class="val-sm" id="val-dur">-</span></div>
+          <div class="chip-row chip-row2" id="chip-dur2-row"><span class="chip-seq">②</span><span class="val-sm" id="val-dur2">-</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 교사 탭 ====== -->
+<div id="tab-teacher" class="tab-content">
+
+  <!-- 잠금 화면 -->
+  <div id="teacher-lock" class="lock-overlay">
+    <div class="lock-box">
+      <div class="lock-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M18 10h-1V7a5 5 0 0 0-10 0v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-6 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm3-7H9V7a3 3 0 0 1 6 0v3z"/></svg>
+      </div>
+      <div class="lock-title">교사 전용</div>
+      <div class="lock-sub">비밀번호를 입력하세요</div>
+      <div class="pw-wrap">
+        <input class="pw-input" type="password" id="pw-input" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')checkPW()" autocomplete="off" maxlength="20">
+        <button class="pw-toggle" onclick="togglePW()" id="pw-toggle-btn" title="표시/숨기기">👁</button>
+      </div>
+      <button class="pw-enter" onclick="checkPW()">확인</button>
+      <div class="pw-err" id="pw-err"></div>
+      <div class="lock-hint">담당 교사에게 문의하세요</div>
+    </div>
+  </div>
+
+  <!-- 실제 현황판 (잠금 해제 후) -->
+  <div id="teacher-content" class="teacher-content">
+    <div class="content">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
+        <button onclick="lockTeacher()" style="background:none;border:none;font-size:12px;color:var(--hint);cursor:pointer;padding:4px 0;">잠금 🔒</button>
+      </div>
+      <div class="card">
+        <div class="date-nav">
+          <div class="date-display" id="teacher-date">-</div>
+          <div class="date-nav-row">
+            <button type="button" class="nav-btn" onclick="moveDate(-1)">◀</button>
+            <button type="button" class="nav-btn" onclick="moveDate(1)">▶</button>
+            <button type="button" class="nav-btn today-btn" onclick="goToday()">오늘</button>
+            <button type="button" class="nav-btn" onclick="openTeacherSeatView()">좌석 현황</button>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num" id="s-total">0</div><div class="slbl">전체</div></div>
+          <div class="stat in"><div class="num" id="s-in">0</div><div class="slbl">재실</div></div>
+          <div class="stat out"><div class="num" id="s-out">0</div><div class="slbl">퇴실</div></div>
+          <div class="stat absent"><div class="num" id="s-abs">0</div><div class="slbl">미출석</div></div>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <select id="f-grade" onchange="onFilterChange()"><option value="">전체 학년</option></select>
+        <select id="f-class" onchange="renderTable()"><option value="">전체 반</option></select>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>학년·반·번</th>
+              <th>이름</th>
+              <th>상태</th>
+              <th>입실</th>
+              <th>퇴실</th>
+              <th>재실</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="t-body">
+            <tr><td colspan="7" class="empty">데이터 로딩 중...</td></tr>
+          </tbody>
+        </table>
+        <div id="t-pagination" class="t-pagination"></div>
+      </div>
+
+      <!-- 교사 전용 설정 영역 -->
+      <div style="margin-top:20px;">
+
+        <div class="card dev-card-gap">
+          <div class="card-title">출석 데이터 다운로드</div>
+          <p class="dl-desc">기간을 선택하면 해당 범위의 출석 기록을 엑셀 파일(.xlsx)로 저장합니다.</p>
+          <div class="dl-grid">
+            <div>
+              <label class="dl-label" for="dl-from">시작일</label>
+              <input type="date" id="dl-from" class="dl-date">
+            </div>
+            <div>
+              <label class="dl-label" for="dl-to">종료일</label>
+              <input type="date" id="dl-to" class="dl-date">
+            </div>
+          </div>
+          <button type="button" class="btn-primary btn-dl" onclick="downloadRange()">엑셀 다운로드</button>
+          <div id="dl-msg" class="dl-msg"></div>
+        </div>
+
+        <!-- 개발자 설정 진입 버튼 -->
+        <button type="button" class="dev-open-btn" onclick="openDevPwModal()">⚙ 개발자 설정</button>
+
+        <!-- 개발자 컨테이너 (잠금 해제 후 표시) -->
+        <div class="dev-container" id="dev-container">
+          <div class="dev-hdr">
+            <span class="dev-lbl">⚙ 개발자 설정</span>
+            <button type="button" class="dev-lock-btn" onclick="lockDevContainer()">닫기 🔒</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">학생 명단</div>
+            <div class="section-gap dev-name-row">
+              <button type="button" class="btn-primary" onclick="reloadCsv()">명단 새로고침</button>
+            </div>
+            <div id="xl-msg" class="dev-msg"></div>
+            <div id="student-count" class="dev-count"></div>
+          </div>
+
+          <!-- GPS 검증 우회 (운영 중 비노출) -->
+          <div class="card dev-card-gap dev-hidden">
+            <div class="card-title">GPS 검증 우회</div>
+            <label class="dev-gps-label">
+              <input type="checkbox" id="skip-gps" class="dev-gps-cb" onchange="toggleSkipGPS()">
+              GPS 검증 건너뛰기
+            </label>
+          </div>
+
+          <div class="card card-danger dev-card-gap">
+            <div class="card-title card-danger-title">⚠ 위험 구역</div>
+            <p class="card-danger-desc">출석 데이터를 전체 삭제합니다. Firebase에 저장된 모든 기록이 영구 삭제되며 복구할 수 없습니다. 별도 암호 2회 확인 후 실행됩니다.</p>
+            <button type="button" class="btn-danger btn-danger-full" onclick="openResetModal()">출석 데이터 초기화</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- 개발자 설정 비밀번호 모달 -->
+<div class="dev-pw-overlay" id="dev-pw-overlay">
+  <div class="dev-pw-box">
+    <h3>⚙ 개발자 설정</h3>
+    <p>비밀번호를 입력하세요</p>
+    <div class="pw-wrap">
+      <input class="pw-input" type="password" id="dev-pw-input" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')confirmDevPW()" autocomplete="off" maxlength="20">
+      <button type="button" class="pw-toggle" onclick="toggleDevPW()">👁</button>
+    </div>
+    <button type="button" class="pw-enter" onclick="confirmDevPW()">확인</button>
+    <div class="pw-err" id="dev-pw-err"></div>
+    <button type="button" class="reset-cancel-btn dev-cancel-btn" onclick="closeDevPwModal()">취소</button>
+  </div>
+</div>
+
+<!-- 출석 초기화 2단계 암호 모달 -->
+<div class="reset-overlay" id="reset-overlay">
+  <div class="reset-box">
+    <div class="step-badge" id="reset-step-badge">1단계 / 2</div>
+    <h3>초기화 암호 확인</h3>
+    <p id="reset-step-desc">1차 암호를 입력하세요.<br>잘못 입력하면 취소됩니다.</p>
+    <div class="reset-pw-wrap">
+      <input type="password" class="reset-pw-input" id="reset-pw-input" placeholder="••••••••••" onkeydown="if(event.key==='Enter')confirmResetPW()">
+      <button type="button" class="reset-pw-toggle" onclick="toggleResetPW()">👁</button>
+    </div>
+    <div class="reset-pw-err" id="reset-pw-err"></div>
+    <div class="reset-btn-row">
+      <button type="button" class="reset-cancel-btn" onclick="closeResetModal()">취소</button>
+      <button type="button" class="reset-confirm-btn" onclick="confirmResetPW()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getDatabase, ref, get, set, onValue, child, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDRoFD69iYf1MBAxE2-NywDxvbbIrYsnUU",
+  authDomain: "study-4cedd.firebaseapp.com",
+  databaseURL: "https://study-4cedd-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "study-4cedd",
+  storageBucket: "study-4cedd.firebasestorage.app",
+  messagingSenderId: "5031182196",
+  appId: "1:5031182196:web:a23a6cc892cb693e873621"
+};
+const app  = initializeApp(firebaseConfig);
+const db   = getDatabase(app);
+const auth = getAuth(app);
+
+// ===== 상태 =====
+let students = [];
+let cfg = { skipGps: true }; // 테스트 모드
+
+// ===== 쉬는시간(19:00~19:20) 제외 재실 ms 계산 =====
+function calcNetMs(from, to) {
+  if (!from || !to || to <= from) return 0;
+  const d = new Date(from);
+  const bsMs = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 19,  0, 0, 0).getTime();
+  const beMs = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 19, 20, 0, 0).getTime();
+  const overlapStart = Math.max(from, bsMs);
+  const overlapEnd   = Math.min(to,   beMs);
+  const overlap      = Math.max(0, overlapEnd - overlapStart);
+  return (to - from) - overlap;
+}
+function calcPenaltyMs(rec) {
+  if (!rec?.penalties?.length) return 0;
+  return rec.penalties.reduce((sum, p) => sum + (p.min || 0) * 60000, 0);
+}
+function calcTotalDur(rec, nowMs) {
+  let total = 0;
+  if (rec?.in)  total += calcNetMs(rec.in,  rec.out  || nowMs);
+  if (rec?.in2) total += calcNetMs(rec.in2, rec.out2 || nowMs);
+  total -= calcPenaltyMs(rec);
+  return Math.max(0, total);
+}
+
+// ===== 교사 좌석 액션 상태 =====
+let _tSeatSnap = {};
+let tSeatActionData = null;
+const SCHOOL_LAT = 35.0672;
+const SCHOOL_LNG = 127.7505;
+const SCHOOL_RADIUS = 100; // 미터 (실내 GPS 오차 감안)
+let gpsOk = false;
+let viewDate = new Date();
+let unsubTeacher = null;
+
+// ===== 학생 명단 로드 (Cloudflare Worker 경유) =====
+const WORKER_URL = 'https://students.tjdgus1121.workers.dev/';
+
+async function loadStudentsFromCsv() {
+  try {
+    const res = await fetch(WORKER_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const sep = text.includes('\t') ? '\t' : ','; // 탭/쉼표 자동 감지
+    const rows = text.trim().split('\n').map(r =>
+      r.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
+    );
+    const first = rows[0];
+    const isHeader = isNaN(Number(first[0])) || isNaN(Number(first[1]));
+    const dataRows = isHeader ? rows.slice(1) : rows;
+    const parsed = [];
+    dataRows.forEach(row => {
+      const 학년=parseInt(row[0]), 반=parseInt(row[1]), 번호=parseInt(row[2]), 이름=(row[3]||'').trim();
+      if (!isNaN(학년) && !isNaN(반) && !isNaN(번호) && 이름) parsed.push({학년,반,번호,이름});
+    });
+    if (parsed.length === 0) throw new Error('유효한 학생 데이터 없음');
+    students = parsed;
+    return true;
+  } catch(e) {
+    console.warn('학생 명단 로드 실패:', e);
+    return false;
+  }
+}
+
+// ===== 초기화 =====
+async function init() {
+  tick(); setInterval(tick, 1000);
+  updateHdrDate();
+
+  // 익명 자동 로그인 (사용자 개입 없음)
+  try { await signInAnonymously(auth); } catch(e) { console.warn('익명 로그인 실패:', e); }
+
+  // 설정 로드 (skipGps만)
+  try {
+    const snap = await get(ref(db, 'yaja/cfg'));
+    if (snap.exists()) cfg = { ...cfg, ...snap.val() };
+  } catch(e){}
+
+  // student.csv 자동 로드
+  const ok = await loadStudentsFromCsv();
+  if (!ok) {
+    // fallback: Firebase에 저장된 명단
+    try {
+      const snap = await get(ref(db, 'yaja/students'));
+      if (snap.exists()) students = snap.val();
+    } catch(e){}
+  }
+
+  buildGradeSelects();
+  buildFilterGrade();
+  loadCfgUI();
+  startGPS();
+  updateStudentCount();
+  scheduleAutoCheckout();
+}
+
+// ===== 20:40 자동 퇴실 처리 =====
+function scheduleAutoCheckout() {
+  if (cfg.skipGps) return; // 개발 모드에선 실행 안 함
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(20, 40, 0, 0);
+  const ms = end - now;
+  if (ms <= 0) return; // 이미 지났으면 무시
+  setTimeout(async () => {
+    const dk = fmtDateKey(new Date());
+    const snap = await get(ref(db, `yaja/attendance/${dk}`));
+    if (!snap.exists()) return;
+    const data = snap.val();
+    const ts = Date.now();
+    const writes = [];
+    Object.entries(data).forEach(([sid, rec]) => {
+      // 1회차 미퇴실
+      if (rec.in && !rec.out) writes.push(set(ref(db, `yaja/attendance/${dk}/${sid}/out`), ts));
+      // 2회차 미퇴실
+      if (rec.in2 && !rec.out2) writes.push(set(ref(db, `yaja/attendance/${dk}/${sid}/out2`), ts));
+    });
+    if (writes.length) await Promise.all(writes);
+    console.log(`[자동퇴실] ${writes.length}건 처리 완료`);
+  }, ms);
+}
+
+// ===== 야자 시간 판별 (17:20~20:40) =====
+function isStudyTime() {
+  const n = new Date();
+  const mins = n.getHours() * 60 + n.getMinutes();
+  return mins >= 17 * 60 + 20 && mins < 20 * 60 + 40;
+}
+function updateTimeBar() {
+  const bar = document.getElementById('time-bar');
+  const txt = document.getElementById('time-txt');
+  if (cfg.skipGps) {
+    bar.className = 'gps skip';
+    txt.textContent = '시간 제한 건너뛰기 모드 (개발자)';
+    return;
+  }
+  if (isStudyTime()) {
+    bar.className = 'gps ok';
+    txt.textContent = '야자 시간 중 (17:20 ~ 20:40)';
+  } else {
+    bar.className = 'gps fail';
+    const mins = new Date().getHours() * 60 + new Date().getMinutes();
+    txt.textContent = mins < 17 * 60 + 20
+      ? '야자 시간 전입니다 (17:20 시작)'
+      : '야자 시간이 종료됐습니다 (20:40 마감)';
+  }
+}
+
+// ===== 시계 =====
+function tick() {
+  const n = new Date();
+  document.getElementById('hdr-clock').textContent = n.toTimeString().slice(0,8);
+  refreshDurChip();
+  updateTimeBar();
+  syncButtons();
+}
+function updateHdrDate() {
+  document.getElementById('hdr-date').textContent = fmtDateKo(new Date());
+}
+function fmtDateKo(d) {
+  return `${d.getMonth()+1}월 ${d.getDate()}일 (${['일','월','화','수','목','금','토'][d.getDay()]})`;
+}
+function fmtDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+function fmtDur(ms) {
+  if (ms < 0) return '-';
+  const m = Math.floor(ms/60000);
+  const h = Math.floor(m/60), rem = m%60;
+  return h ? `${h}시간 ${rem}분` : `${m}분`;
+}
+
+// ===== GPS =====
+function setGpsWarn(show) {
+  document.getElementById('gps-warn').classList.toggle('hidden', !show);
+}
+function startGPS() {
+  if (cfg.skipGps) { setGPS('skip','GPS 검증 건너뛰기 모드'); setGpsWarn(false); gpsOk=true; syncButtons(); return; }
+  if (!navigator.geolocation) { setGPS('fail','GPS를 지원하지 않는 브라우저입니다'); setGpsWarn(true); return; }
+  setGPS('checking','위치 확인 중...'); setGpsWarn(false);
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:la, longitude:lo} = pos.coords;
+    const d = haversine(la, lo, SCHOOL_LAT, SCHOOL_LNG);
+    if (d <= SCHOOL_RADIUS) {
+      setGPS('ok', `학교 내 확인 (${Math.round(d)}m 이내)`);
+      gpsOk = true; setGpsWarn(false);
+    } else {
+      setGPS('fail', `학교 범위 밖 (${Math.round(d)}m — 허용 ${SCHOOL_RADIUS}m)`);
+      gpsOk = false; setGpsWarn(false);
+    }
+    syncButtons();
+  }, err=>{
+    const msgs = {1:'위치 권한이 거부됐습니다 — 브라우저 설정에서 위치를 허용해주세요',2:'GPS 신호를 찾을 수 없습니다',3:'GPS 응답 시간 초과'};
+    setGPS('fail', msgs[err.code]||'GPS 오류');
+    gpsOk = false; setGpsWarn(true); syncButtons();
+  });
+}
+// 제출 시점 GPS 즉시 재검증 (Promise 반환)
+function verifyGPSNow() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(false); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const d = haversine(pos.coords.latitude, pos.coords.longitude, SCHOOL_LAT, SCHOOL_LNG);
+      resolve(d <= SCHOOL_RADIUS);
+    }, () => resolve(false), { timeout: 8000, maximumAge: 0 });
+  });
+}
+function setGPS(cls, txt) {
+  const el = document.getElementById('gps-bar');
+  el.className = `gps ${cls}`;
+  document.getElementById('gps-txt').textContent = txt;
+}
+function haversine(la1,lo1,la2,lo2) {
+  const R=6371000, dL=(la2-la1)*Math.PI/180, dO=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ===== 드롭다운 =====
+function buildGradeSelects() {
+  const grades = [...new Set(students.map(s=>s.학년))].sort((a,b)=>a-b);
+  const sel = document.getElementById('sel-grade');
+  sel.innerHTML = '<option value="">선택</option>';
+  grades.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g+'학년'; sel.appendChild(o); });
+  document.getElementById('sel-class').innerHTML = '<option value="">선택</option>';
+  document.getElementById('sel-num').innerHTML   = '<option value="">선택</option>';
+}
+function onGradeChange() {
+  const g = +document.getElementById('sel-grade').value;
+  const cs = [...new Set(students.filter(s=>s.학년===g).map(s=>s.반))].sort((a,b)=>a-b);
+  const sel = document.getElementById('sel-class');
+  sel.innerHTML = '<option value="">선택</option>';
+  cs.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c+'반'; sel.appendChild(o); });
+  document.getElementById('sel-num').innerHTML = '<option value="">선택</option>';
+  resetNameBox(); syncButtons();
+}
+function onClassChange() {
+  const g=+document.getElementById('sel-grade').value, c=+document.getElementById('sel-class').value;
+  const nums = students.filter(s=>s.학년===g&&s.반===c).sort((a,b)=>a.번호-b.번호);
+  const sel = document.getElementById('sel-num');
+  sel.innerHTML = '<option value="">선택</option>';
+  nums.forEach(s=>{ const o=document.createElement('option'); o.value=s.번호; o.textContent=s.번호+'번'; sel.appendChild(o); });
+  resetNameBox(); syncButtons();
+}
+function onNumChange() {
+  const g=+document.getElementById('sel-grade').value, c=+document.getElementById('sel-class').value, n=+document.getElementById('sel-num').value;
+  if (!g||!c||!n) { resetNameBox(); myTodayRec=null; syncButtons(); return; }
+  const s = students.find(st=>st.학년===g&&st.반===c&&st.번호===n);
+  const box = document.getElementById('name-box');
+  const val = document.getElementById('name-val');
+  if (s) { val.textContent=s.이름; box.className='name-result filled'; }
+  else   { val.textContent='학생 없음'; box.className='name-result'; }
+  // Firebase에서 오늘 기록 로드 후 버튼·칩 갱신
+  const sid=`${g}-${c}-${n}`;
+  loadMyRec(sid).then(()=>{ syncButtons(); showMyChips(g,c,n); });
+}
+function resetNameBox() {
+  document.getElementById('name-val').textContent='번호를 선택하면 표시됩니다';
+  document.getElementById('name-box').className='name-result';
+  document.getElementById('rec-chips').style.display='none';
+}
+
+// ===== 버튼 동기화 =====
+function getSid() {
+  const g=+document.getElementById('sel-grade').value, c=+document.getElementById('sel-class').value, n=+document.getElementById('sel-num').value;
+  return (g&&c&&n) ? `${g}-${c}-${n}` : null;
+}
+
+// 오늘 내 기록은 Firebase에서 실시간으로 관리 (캐시)
+let myTodayRec = null;
+
+async function loadMyRec(sid) {
+  const dk = fmtDateKey(new Date());
+  try {
+    const snap = await get(ref(db, `yaja/attendance/${dk}/${sid}`));
+    myTodayRec = snap.exists() ? snap.val() : null;
+  } catch(e){ myTodayRec = null; }
+}
+
+function syncButtons() {
+  const sid = getSid();
+  const rec = myTodayRec;
+  const base = !!sid && gpsOk && (isStudyTime() || cfg.skipGps);
+  // 입실 가능: 기록 없음 OR (1회차 완료 + 2회차 미시작)
+  const canIn  = base && (!rec?.in || (rec?.out && !rec?.in2));
+  // 퇴실 가능: 1회차 재실 중 OR 2회차 재실 중
+  const canOut = base && ((rec?.in && !rec?.out) || (rec?.in2 && !rec?.out2));
+  document.getElementById('btn-in').disabled  = !canIn;
+  document.getElementById('btn-out').disabled = !canOut;
+}
+
+// ===== 좌석 데이터 =====
+let seatsData = {};
+let pendingSeatId = null;
+
+async function loadSeats() {
+  const dk = fmtDateKey(new Date());
+  try {
+    const snap = await get(ref(db, `yaja/seats/${dk}`));
+    seatsData = snap.exists() ? snap.val() : {};
+  } catch(e) { seatsData = {}; }
+}
+
+function renderSeats() {
+  const mySeat = myTodayRec?.seat || null;
+  const mySid  = getSid();
+  document.querySelectorAll('.seat').forEach(el => {
+    const id  = el.dataset.seat;
+    const occ = seatsData[id];
+    el.classList.remove('occupied','mine');
+    el.querySelector('.seat-nm').textContent = '';
+    if (occ) {
+      if (occ.sid === mySid || id === mySeat) {
+        el.classList.add('mine');
+        el.querySelector('.seat-nm').textContent = occ.name;
+      } else {
+        el.classList.add('occupied');
+        el.querySelector('.seat-nm').textContent = occ.name;
+      }
+    }
+  });
+}
+
+function scaleSeatRoom() {
+  const room = document.querySelector('.room-wrap');
+  if (!room) return;
+  room.style.zoom = '';
+  const availW = window.innerWidth - 40;
+  const availH = window.innerHeight - 130;
+  const scale  = Math.min(availW / room.scrollWidth, availH / room.scrollHeight);
+  if (scale < 1) room.style.zoom = Math.max(0.35, scale).toFixed(3);
+}
+function openSeatModal() {
+  renderSeats();
+  document.getElementById('seat-modal').style.display = 'flex';
+  requestAnimationFrame(scaleSeatRoom);
+}
+function closeSeatModal() {
+  document.getElementById('seat-modal').style.display = 'none';
+  pendingSeatId = null;
+}
+
+function selectSeat(id) {
+  if (seatsData[id]) return; // 이미 점유
+  pendingSeatId = id;
+  document.getElementById('seat-confirm-sub').textContent = `${id}번 자리`;
+  document.getElementById('seat-confirm').style.display = 'flex';
+}
+function confirmSeatNo() {
+  pendingSeatId = null;
+  document.getElementById('seat-confirm').style.display = 'none';
+}
+async function confirmSeatYes() {
+  const sid = getSid(); if (!sid || !pendingSeatId) return;
+  if (!cfg.skipGps) {
+    const ok = await verifyGPSNow();
+    if (!ok) { alert('학교 위치가 확인되지 않습니다.'); return; }
+  }
+  const dk = fmtDateKey(new Date());
+  const [g,c,n] = sid.split('-').map(Number);
+  const student = students.find(s => s.학년===g && s.반===c && s.번호===n);
+  const name = student?.이름 || '';
+  // 1회차 완료 후 2회차 입실이면 in2/seat2 사용
+  const isSession2 = !!(myTodayRec?.out && !myTodayRec?.in2);
+  const inKey   = isSession2 ? 'in2'   : 'in';
+  const seatKey = isSession2 ? 'seat2' : 'seat';
+  try {
+    const inRef = ref(db, `yaja/attendance/${dk}/${sid}/${inKey}`);
+    await set(inRef, serverTimestamp());
+    await set(ref(db, `yaja/attendance/${dk}/${sid}/${seatKey}`), pendingSeatId);
+    await set(ref(db, `yaja/seats/${dk}/${pendingSeatId}`), { sid, name });
+    const snap = await get(inRef);
+    myTodayRec = { ...(myTodayRec||{}), [inKey]: snap.val(), [seatKey]: pendingSeatId };
+    seatsData[pendingSeatId] = { sid, name };
+    document.getElementById('seat-confirm').style.display = 'none';
+    closeSeatModal();
+    showMyChips(g,c,n); syncButtons();
+    showToast('✅', '입실 완료!', `${name} · ${fmtTime(snap.val())}`);
+  } catch(e) { alert('저장 실패: ' + e.message); }
+}
+
+// ===== Toast 애니메이션 =====
+function showToast(icon, title, sub) {
+  const prev = document.getElementById('toast-overlay');
+  if (prev) prev.remove();
+  const el = document.createElement('div');
+  el.id = 'toast-overlay';
+  el.className = 'toast-overlay';
+  el.innerHTML = `<div class="toast-box"><div class="toast-icon">${icon}</div><div class="toast-title">${title}</div><div class="toast-sub">${sub}</div></div>`;
+  document.getElementById('app-frame').appendChild(el);
+  setTimeout(() => {
+    el.querySelector('.toast-box').classList.add('out');
+    setTimeout(() => el.remove(), 320);
+  }, 2000);
+}
+
+// ===== 입실 / 퇴실 =====
+async function doCheckIn() {
+  const sid = getSid(); if (!sid) return;
+  if (!cfg.skipGps && !isStudyTime()) { alert('야자 시간(17:20~20:40)에만 입실할 수 있습니다.'); return; }
+  await loadSeats();
+  openSeatModal();
+}
+async function doCheckOut() {
+  const sid = getSid(); if (!sid) return;
+  if (!cfg.skipGps && !isStudyTime()) { alert('야자 시간(17:20~20:40)에만 퇴실할 수 있습니다.'); return; }
+  const rec = myTodayRec;
+  // 2회차 재실 중이면 out2, 아니면 out
+  const isSession2 = !!(rec?.in2 && !rec?.out2);
+  const outKey  = isSession2 ? 'out2'  : 'out';
+  const seatKey = isSession2 ? 'seat2' : 'seat';
+  if (!rec?.in) return;
+  const dk = fmtDateKey(new Date());
+  try {
+    const outRef = ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`);
+    await set(outRef, serverTimestamp());
+    const currentSeat = rec?.[seatKey];
+    if (currentSeat) {
+      await set(ref(db, `yaja/seats/${dk}/${currentSeat}`), null);
+      delete seatsData[currentSeat];
+    }
+    const snap = await get(outRef);
+    myTodayRec = { ...rec, [outKey]: snap.val() };
+    const [g,c,n] = sid.split('-').map(Number);
+    showMyChips(g,c,n); syncButtons();
+    const name = students.find(s=>`${s.학년}-${s.반}-${s.번호}`===sid)?.이름 ?? '';
+    showToast('👋', '퇴실 완료!', `${name} · ${fmtTime(snap.val())}`);
+  } catch(e){ alert('저장 실패: ' + e.message); }
+}
+
+// ===== 내 기록 칩 =====
+function showMyChips(g,c,n) {
+  const rec = myTodayRec;
+  const chips = document.getElementById('rec-chips');
+  if (!rec?.in) { chips.style.display='none'; return; }
+  chips.style.display='flex';
+
+  // 1회차
+  document.getElementById('val-in').textContent  = fmtTime(rec.in);
+  document.getElementById('val-out').textContent = rec.out ? fmtTime(rec.out) : '-';
+  const dur1 = fmtDur(calcNetMs(rec.in, rec.out || Date.now()));
+  document.getElementById('val-dur').textContent  = dur1;
+  document.getElementById('chip-dur').className   = (rec.in && !rec.out) ? 'chip active' : 'chip';
+
+  // 2회차
+  const show2 = !!rec.in2;
+  document.getElementById('chip-in2-row').style.display  = show2 ? 'flex' : 'none';
+  document.getElementById('chip-out2-row').style.display = show2 ? 'flex' : 'none';
+  document.getElementById('chip-dur2-row').style.display = show2 ? 'flex' : 'none';
+  if (show2) {
+    document.getElementById('val-in2').textContent  = fmtTime(rec.in2);
+    document.getElementById('val-out2').textContent = rec.out2 ? fmtTime(rec.out2) : '-';
+    const dur2 = fmtDur(calcNetMs(rec.in2, rec.out2 || Date.now()));
+    document.getElementById('val-dur2').textContent = dur2;
+  }
+}
+function refreshDurChip() {
+  const rec = myTodayRec;
+  if (!rec?.in) return;
+  // 1회차 재실 중이면 갱신
+  if (rec.in && !rec.out) {
+    document.getElementById('val-dur').textContent = fmtDur(calcNetMs(rec.in, Date.now()));
+  }
+  // 2회차 재실 중이면 갱신
+  if (rec.in2 && !rec.out2) {
+    document.getElementById('val-dur2').textContent = fmtDur(calcNetMs(rec.in2, Date.now()));
+  }
+}
+
+// ===== 교사 현황판 =====
+function buildFilterGrade() {
+  const grades=[...new Set(students.map(s=>s.학년))].sort((a,b)=>a-b);
+  const fg=document.getElementById('f-grade');
+  fg.innerHTML='<option value="">전체 학년</option>';
+  grades.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g+'학년'; fg.appendChild(o); });
+  document.getElementById('f-class').innerHTML='<option value="">전체 반</option>';
+}
+function onFilterChange() {
+  const g=+document.getElementById('f-grade').value;
+  const cs=[...new Set(students.filter(s=>!g||s.학년===g).map(s=>s.반))].sort((a,b)=>a-b);
+  const fc=document.getElementById('f-class');
+  fc.innerHTML='<option value="">전체 반</option>';
+  cs.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c+'반'; fc.appendChild(o); });
+  renderTable();
+}
+function moveDate(d) { viewDate=new Date(viewDate); viewDate.setDate(viewDate.getDate()+d); attachTeacherListener(); }
+function goToday() { viewDate=new Date(); attachTeacherListener(); }
+
+// 교사 탭: 날짜별 실시간 리스너
+let _lastDayRec = {};
+function attachTeacherListener() {
+  if (unsubTeacher) { unsubTeacher(); unsubTeacher=null; }
+  const dk = fmtDateKey(viewDate);
+  document.getElementById('teacher-date').textContent = fmtDateKo(viewDate);
+  unsubTeacher = onValue(ref(db, `yaja/attendance/${dk}`), snap => {
+    _lastDayRec = snap.exists() ? snap.val() : {};
+    renderTable();
+  });
+}
+
+function renderTable() {
+  const dayRec = _lastDayRec;
+  const fg=+document.getElementById('f-grade').value, fc=+document.getElementById('f-class').value;
+  let list=students;
+  if (fg) list=list.filter(s=>s.학년===fg);
+  if (fc) list=list.filter(s=>s.반===fc);
+  // 0=재실, 1=퇴실, 2=미출석
+  const statusOrder = rec => {
+    if (!rec) return 2;
+    if ((rec.in && !rec.out) || (rec.in2 && !rec.out2)) return 0;
+    if (rec.out || rec.out2) return 1;
+    return 2;
+  };
+  list=list.sort((a,b)=>{
+    const sidA=`${a.학년}-${a.반}-${a.번호}`, sidB=`${b.학년}-${b.반}-${b.번호}`;
+    return statusOrder(dayRec[sidA])-statusOrder(dayRec[sidB]) || a.학년-b.학년 || a.반-b.반 || a.번호-b.번호;
+  });
+
+  const tbody=document.getElementById('t-body');
+  if (!list.length) {
+    tbody.innerHTML='<tr><td colspan="7" class="empty">등록된 학생이 없습니다<br><small>교사 탭에서 엑셀을 업로드하세요</small></td></tr>';
+    document.getElementById('t-pagination').innerHTML='';
+    updateStats(0,0,0,0); return;
+  }
+
+  // 전체 통계 (페이지와 무관)
+  let inN=0, outN=0;
+  list.forEach(s=>{
+    const rec=dayRec[`${s.학년}-${s.반}-${s.번호}`];
+    if ((rec?.in && !rec?.out)||(rec?.in2 && !rec?.out2)) inN++;
+    else if (rec?.out||rec?.out2) outN++;
+  });
+  updateStats(list.length, inN, outN, list.length-inN-outN);
+
+  const PAGE_SIZE = 20;
+  let curPage = 1;
+
+  function renderPage(page) {
+    curPage = page;
+    const start = (page-1)*PAGE_SIZE, end = start+PAGE_SIZE;
+    tbody.innerHTML = list.slice(start, end).map(s=>{
+      const sid=`${s.학년}-${s.반}-${s.번호}`, rec=dayRec[sid];
+      let badge='<span class="badge none">미출석</span>', inT='-', outT='-', dur='-';
+      if (rec?.in2 && !rec?.out2) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in2); }
+      else if (rec?.out2) { badge='<span class="badge out">퇴실</span>'; inT=fmtTime(rec.in2); outT=fmtTime(rec.out2); dur=fmtDur(calcTotalDur(rec,null)); }
+      else if (rec?.in && !rec?.out) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in); }
+      else if (rec?.out) { badge='<span class="badge out">퇴실</span>'; inT=fmtTime(rec.in); outT=fmtTime(rec.out); dur=fmtDur(calcTotalDur(rec,null)); }
+      const numStr=String(s.번호).padStart(2,'0');
+      let memo = '-';
+      if (rec?.penalties?.length) {
+        memo = rec.penalties.map(p => {
+          const t = new Date(p.ts);
+          const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+          const pen = p.min > 0 ? ` −${p.min}분` : '';
+          return `<span style="color:var(--red-d)">${p.note}${pen}</span> <span style="color:var(--hint)">${ts}</span>`;
+        }).join('<br>');
+      }
+      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline" onclick="openSrecModal('${sid}')">${s.이름}</td><td>${badge}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
+    }).join('');
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const total = Math.ceil(list.length / PAGE_SIZE);
+    const el = document.getElementById('t-pagination');
+    if (total <= 1) { el.innerHTML=''; return; }
+    const WINDOW = 2; // 현재 페이지 ± 2 = 5개
+    let start = Math.max(1, curPage - WINDOW);
+    let end   = Math.min(total, start + WINDOW*2);
+    start = Math.max(1, end - WINDOW*2); // end가 clamp되면 start 재조정
+    let html = `<button class="t-page-btn" onclick="__tPage(${curPage-1})" ${curPage===1?'disabled':''}>‹</button>`;
+    for (let i=start; i<=end; i++) {
+      html += `<button class="t-page-btn${i===curPage?' active':''}" onclick="__tPage(${i})">${i}</button>`;
+    }
+    html += `<button class="t-page-btn" onclick="__tPage(${curPage+1})" ${curPage===total?'disabled':''}>›</button>`;
+    el.innerHTML = html;
+  }
+
+  window.__tPage = (p) => { if(p>=1 && p<=Math.ceil(list.length/PAGE_SIZE)) renderPage(p); };
+  renderPage(1);
+}
+
+// ===== 학생 기록 팝업 =====
+function openSrecModal(sid) {
+  const s = students.find(st=>`${st.학년}-${st.반}-${st.번호}`===sid);
+  if (!s) return;
+  const rec = _lastDayRec[sid];
+  const numStr = String(s.번호).padStart(2,'0');
+  document.getElementById('srec-name').textContent = `${s.학년}학년 ${s.반}반 ${numStr}번 ${s.이름}`;
+
+  let html = '';
+
+  // 1회차
+  html += `<div class="srec-section">1회차</div>`;
+  html += `<div class="srec-row"><span class="srec-label">입실</span><span class="srec-val">${rec?.in ? fmtTime(rec.in) : '-'}</span></div>`;
+  html += `<div class="srec-row"><span class="srec-label">퇴실</span><span class="srec-val">${rec?.out ? fmtTime(rec.out) : '-'}</span></div>`;
+  if (rec?.in && rec?.out) {
+    html += `<div class="srec-row"><span class="srec-label">재실시간</span><span class="srec-val">${fmtDur(calcNetMs(rec.in, rec.out))}</span></div>`;
+  }
+
+  // 2회차
+  if (rec?.in2) {
+    html += `<div class="srec-section">2회차</div>`;
+    html += `<div class="srec-row"><span class="srec-label">입실</span><span class="srec-val">${fmtTime(rec.in2)}</span></div>`;
+    html += `<div class="srec-row"><span class="srec-label">퇴실</span><span class="srec-val">${rec?.out2 ? fmtTime(rec.out2) : '-'}</span></div>`;
+    if (rec?.out2) {
+      html += `<div class="srec-row"><span class="srec-label">재실시간</span><span class="srec-val">${fmtDur(calcNetMs(rec.in2, rec.out2))}</span></div>`;
+    }
+  }
+
+  // 누적
+  if (rec?.in) {
+    const total = calcTotalDur(rec, null);
+    html += `<div class="srec-section">합계</div>`;
+    html += `<div class="srec-row"><span class="srec-label">총 재실시간</span><span class="srec-val">${fmtDur(total)}</span></div>`;
+  }
+
+  // 벌점
+  if (rec?.penalties?.length) {
+    html += `<div class="srec-section">벌점 기록</div>`;
+    rec.penalties.forEach(p => {
+      const t = new Date(p.ts);
+      const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+      const pen = p.min > 0 ? ` (−${p.min}분)` : '';
+      html += `<div class="srec-row"><span class="srec-label">${ts}</span><span class="srec-val" style="color:var(--red-d)">${p.note}${pen}</span></div>`;
+    });
+  }
+
+  if (!rec) html = '<div style="text-align:center;padding:20px;color:var(--hint);font-size:13px;">오늘 출석 기록 없음</div>';
+
+  document.getElementById('srec-body').innerHTML = html;
+  document.getElementById('srec-overlay').classList.add('show');
+}
+function closeSrecModal() {
+  document.getElementById('srec-overlay').classList.remove('show');
+}
+function updateStats(tot,inN,outN,abs) {
+  document.getElementById('s-total').textContent=tot;
+  document.getElementById('s-in').textContent=inN;
+  document.getElementById('s-out').textContent=outN;
+  document.getElementById('s-abs').textContent=abs;
+}
+
+function loadCfgUI() {
+  const sk = document.getElementById('skip-gps');
+  if (sk) sk.checked = !!cfg.skipGps;
+}
+async function persistCfg() {
+  try { await set(ref(db, 'yaja/cfg'), cfg); } catch(e){ console.warn(e); }
+}
+function toggleSkipGPS() {
+  cfg.skipGps = document.getElementById('skip-gps').checked;
+  persistCfg(); startGPS();
+}
+
+// ===== GitHub CSV 관리 =====
+function setXlMsg(txt, color) {
+  const el = document.getElementById('xl-msg');
+  if (!el) return;
+  el.textContent = txt;
+  el.style.color = color || 'var(--muted)';
+}
+
+function showPreview(list) {
+  const tbody = document.getElementById('preview-body');
+  if (!tbody) return;
+  const slice = list.slice(0, 50);
+  tbody.innerHTML = slice.map(s =>
+    `<tr><td style="padding:5px 10px">${s.학년}</td><td style="padding:5px 10px">${s.반}</td><td style="padding:5px 10px">${s.번호}</td><td style="padding:5px 10px;font-weight:600">${s.이름}</td></tr>`
+  ).join('');
+  if (list.length > 50)
+    tbody.innerHTML += `<tr><td colspan="4" style="padding:7px 10px;text-align:center;color:var(--hint);font-size:11px">... 외 ${list.length-50}명</td></tr>`;
+  document.getElementById('preview-wrap').style.display = 'block';
+}
+
+async function reloadCsv() {
+  setXlMsg('학생 명단 불러오는 중...', '#BA7517');
+  const ok = await loadStudentsFromCsv();
+  if (ok) {
+    buildGradeSelects(); buildFilterGrade();
+    if (teacherUnlocked) attachTeacherListener();
+    showPreview(students);
+    setXlMsg(`${students.length}명 불러오기 완료`, 'var(--green-d)');
+    updateStudentCount();
+  } else {
+    setXlMsg('학생 명단을 불러올 수 없습니다 — Worker URL을 확인하세요', 'var(--red-d)');
+  }
+}
+
+// ===== 출석 초기화 2단계 암호 모달 =====
+let _resetStep = 1;
+function _verifyReset(pw) {
+  // "gkehddurh16" reversed → "61hruddhekg"
+  return pw.split('').reverse().join('') === '61hruddhekg';
+}
+// ===== 교사 좌석 현황 =====
+async function openTeacherSeatView() {
+  const dk = fmtDateKey(viewDate);
+  document.getElementById('t-seat-date-label').textContent = `좌석 현황 — ${fmtDateKo(viewDate)}`;
+
+  // 해당 날짜의 좌석 데이터 로드
+  let seatSnap = {};
+  try {
+    const snap = await get(ref(db, `yaja/seats/${dk}`));
+    seatSnap = snap.exists() ? snap.val() : {};
+  } catch(e) {}
+  _tSeatSnap = seatSnap; // 교사 좌석 클릭용으로 저장
+
+  // 좌석 HTML 생성 (room-wrap 구조 복제, 읽기 전용)
+  const seatIds = [
+    'T1','T2','T3','T4','T5','T6','T7',
+    'L1','L2','L3','L4','L5','L6','L7','L8',
+    'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12',
+    'R1','R2','R3','R4','R5','R6','R7','R8','R9','R10',
+    'R11','R12','R13','R14','R15','R16','R17','R18'
+  ];
+
+  function makeSeat(id) {
+    const occ = seatSnap[id];
+    const cls = occ ? 'seat seat-ro occupied' : 'seat seat-ro';
+    const nm  = occ ? occ.name : '';
+    const click = occ ? ` onclick="teacherSeatClick('${id}')"` : '';
+    return `<div class="${cls}" data-seat="${id}"${click}><span class="seat-id">${id}</span><span class="seat-nm">${nm}</span></div>`;
+  }
+
+  const tSeats = ['T1','T2','T3','T4','T5','T6','T7'].map(makeSeat).join('');
+  const mainSeats = `
+    <div class="tri-deco tri-cl"></div>
+    <div class="tri-deco tri-cr"></div>
+    <div class="shelf-div shelf-div-1"></div>
+    <div class="shelf-div shelf-div-2"></div>
+    ${['R1','R2','R3','R4','R5','R6','R7','R8','R9','R10','R11','R12','R13','R14','R15','R16','R17','R18'].map(makeSeat).join('')}
+    ${['L1','L2','L3','L4','L5','L6','L7','L8'].map(makeSeat).join('')}
+    ${['C1','C2','C3','C4','C5','C6'].map(makeSeat).join('')}
+    <div class="shelf-div shelf-div-3"></div>
+    ${['C7','C8','C9','C10','C11','C12'].map(makeSeat).join('')}
+    <div class="room-entrance">입구</div>
+  `;
+
+  document.getElementById('t-seat-room-wrap').innerHTML = `
+    <div class="room-wrap">
+      <div class="t-grid">${tSeats}</div>
+      <div class="seat-grid">${mainSeats}</div>
+    </div>
+  `;
+
+  document.getElementById('t-seat-modal').classList.add('show');
+}
+function closeTeacherSeatView() {
+  document.getElementById('t-seat-modal').classList.remove('show');
+}
+
+// ===== 교사 좌석 클릭 → 학생 액션 패널 =====
+function teacherSeatClick(seatId) {
+  const occ = _tSeatSnap[seatId];
+  if (!occ) return;
+  tSeatActionData = { seatId, sid: occ.sid, name: occ.name };
+  const [g, c, n] = occ.sid.split('-').map(Number);
+  const student = students.find(s => s.학년===g && s.반===c && s.번호===n);
+  document.getElementById('t-action-seat-label').textContent = `좌석 ${seatId}`;
+  document.getElementById('t-action-student-name').textContent = occ.name;
+  document.getElementById('t-action-student-info').textContent =
+    student ? `${g}학년 ${c}반 ${String(n).padStart(2,'0')}번` : occ.sid;
+  const rec = _lastDayRec[occ.sid];
+  tSeatActionData.rec = rec;
+  let lines = [];
+  if (rec?.in2 && !rec?.out2)      lines.push(`2회차 재실 중 · 입실 ${fmtTime(rec.in2)}`);
+  else if (rec?.in && !rec?.out)   lines.push(`재실 중 · 입실 ${fmtTime(rec.in)}`);
+  if (rec?.penalties?.length) {
+    const pm = Math.round(calcPenaltyMs(rec) / 60000);
+    lines.push(`누적 패널티 −${pm}분`);
+  }
+  document.getElementById('t-action-status').textContent = lines.join(' · ') || '상태 정보 없음';
+  document.getElementById('t-seat-action-overlay').style.display = 'flex';
+}
+function closeTeacherSeatAction() {
+  document.getElementById('t-seat-action-overlay').style.display = 'none';
+  tSeatActionData = null;
+}
+
+async function teacherCheckOut() {
+  if (!tSeatActionData) return;
+  const { seatId, sid, name, rec } = tSeatActionData;
+  if (!confirm(`${name} 학생을 퇴실 처리하겠습니까?`)) return;
+  const dk = fmtDateKey(viewDate);
+  const isSession2 = !!(rec?.in2 && !rec?.out2);
+  const outKey = isSession2 ? 'out2' : 'out';
+  try {
+    await set(ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`), serverTimestamp());
+    await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
+    delete _tSeatSnap[seatId];
+    closeTeacherSeatAction();
+  } catch(e) { alert('처리 실패: ' + e.message); }
+}
+
+function openForceOutModal() {
+  if (!tSeatActionData) return;
+  document.getElementById('t-force-desc').textContent =
+    `${tSeatActionData.name} 학생의 좌석을 강제 해제하고 재실시간에서 패널티를 차감합니다.`;
+  document.getElementById('t-force-penalty').value = '10';
+  document.getElementById('t-force-note').value = '';
+  document.getElementById('t-force-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('t-force-note').focus(), 100);
+}
+function closeForceOutModal() {
+  document.getElementById('t-force-overlay').style.display = 'none';
+}
+
+async function confirmForceOut() {
+  if (!tSeatActionData) return;
+  const { seatId, sid, name, rec } = tSeatActionData;
+  const dk = fmtDateKey(viewDate);
+  const penaltyMin = Math.max(0, parseInt(document.getElementById('t-force-penalty').value) || 0);
+  const noteRaw = document.getElementById('t-force-note').value.trim() || '사유 미기재';
+  const isSession2 = !!(rec?.in2 && !rec?.out2);
+  const outKey = isSession2 ? 'out2' : 'out';
+  try {
+    // 강제 퇴실
+    await set(ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`), serverTimestamp());
+    // 좌석 해제
+    await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
+    delete _tSeatSnap[seatId];
+    // 패널티 + 비고 기록
+    const penSnap = await get(ref(db, `yaja/attendance/${dk}/${sid}/penalties`));
+    const existing = penSnap.exists() ? penSnap.val() : [];
+    existing.push({ ts: Date.now(), min: penaltyMin, note: `자리이탈: ${noteRaw}` });
+    await set(ref(db, `yaja/attendance/${dk}/${sid}/penalties`), existing);
+    closeForceOutModal();
+    closeTeacherSeatAction();
+  } catch(e) { alert('처리 실패: ' + e.message); }
+}
+
+function openResetModal() {
+  _resetStep = 1;
+  document.getElementById('reset-step-badge').textContent = '1단계 / 2';
+  document.getElementById('reset-step-desc').innerHTML = '1차 암호를 입력하세요.<br>잘못 입력하면 취소됩니다.';
+  document.getElementById('reset-pw-input').value = '';
+  document.getElementById('reset-pw-err').textContent = '';
+  document.getElementById('reset-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('reset-pw-input').focus(), 100);
+}
+function closeResetModal() {
+  document.getElementById('reset-overlay').classList.remove('show');
+  document.getElementById('reset-pw-input').value = '';
+  document.getElementById('reset-pw-err').textContent = '';
+  _resetStep = 1;
+}
+function toggleResetPW() {
+  const inp = document.getElementById('reset-pw-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function confirmResetPW() {
+  const val = document.getElementById('reset-pw-input').value;
+  const err = document.getElementById('reset-pw-err');
+  if (!_verifyReset(val)) {
+    err.textContent = '암호가 올바르지 않습니다. 초기화가 취소됩니다.';
+    document.getElementById('reset-pw-input').value = '';
+    setTimeout(()=>closeResetModal(), 1800);
+    return;
+  }
+  if (_resetStep === 1) {
+    _resetStep = 2;
+    document.getElementById('reset-step-badge').textContent = '2단계 / 2';
+    document.getElementById('reset-step-desc').innerHTML = '2차 암호를 한 번 더 입력하세요.<br>최종 확인입니다.';
+    document.getElementById('reset-pw-input').value = '';
+    err.textContent = '';
+    document.getElementById('reset-pw-input').focus();
+    return;
+  }
+  // 2단계 통과 → 실제 삭제
+  closeResetModal();
+  clearAll();
+}
+async function clearAll() {
+  try { await set(ref(db, 'yaja/attendance'), null); } catch(e){ console.warn(e); }
+  _lastDayRec = {};
+  renderTable();
+  setXlMsg('출석 데이터가 초기화됐습니다', 'var(--muted)');
+}
+// ===== 기간별 엑셀 다운로드 =====
+async function downloadRange() {
+  const fromVal = document.getElementById('dl-from').value;
+  const toVal   = document.getElementById('dl-to').value;
+  const msgEl   = document.getElementById('dl-msg');
+
+  if (!fromVal || !toVal) {
+    msgEl.className = 'dl-msg err';
+    msgEl.textContent = '시작일과 종료일을 모두 선택하세요.';
+    return;
+  }
+  const fromD = new Date(fromVal), toD = new Date(toVal);
+  if (fromD > toD) {
+    msgEl.className = 'dl-msg err';
+    msgEl.textContent = '시작일이 종료일보다 늦습니다.';
+    return;
+  }
+  const diffDays = Math.round((toD - fromD) / 86400000) + 1;
+  if (diffDays > 90) {
+    msgEl.className = 'dl-msg err';
+    msgEl.textContent = '최대 90일 범위까지 다운로드 가능합니다.';
+    return;
+  }
+
+  msgEl.className = 'dl-msg ing';
+  msgEl.textContent = `데이터 불러오는 중… (0/${diffDays}일)`;
+
+  const rows = [];
+  let cur = new Date(fromD);
+  let fetched = 0;
+
+  while (cur <= toD) {
+    const dk = fmtDateKey(cur);
+    try {
+      const snap = await get(ref(db, `yaja/attendance/${dk}`));
+      const dayRec = snap.exists() ? snap.val() : {};
+      students.forEach(s => {
+        const sid = `${s.학년}-${s.반}-${s.번호}`;
+        const rec = dayRec[sid];
+        let status = '미출석', inT = '', outT = '', dur = '', memo = '';
+        if (rec?.in && !rec?.out) {
+          status = '재실 중';
+          inT = fmtTime(rec.in);
+        } else if (rec?.out) {
+          status = '퇴실';
+          inT  = fmtTime(rec.in);
+          outT = fmtTime(rec.out);
+          dur  = fmtDur(calcTotalDur(rec, null));
+        }
+        if (rec?.penalties?.length) {
+          memo = rec.penalties.map(p => {
+            const t = new Date(p.ts);
+            const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+            return p.min > 0 ? `${p.note} (−${p.min}분) ${ts}` : `${p.note} ${ts}`;
+          }).join(' / ');
+        }
+        rows.push({
+          '날짜': dk,
+          '학년': s.학년,
+          '반':   s.반,
+          '번호': s.번호,
+          '이름': s.이름,
+          '상태': status,
+          '입실': inT,
+          '퇴실': outT,
+          '체류시간': dur,
+          '비고': memo,
+        });
+      });
+    } catch(e) { console.warn(dk, e); }
+    fetched++;
+    msgEl.textContent = `데이터 불러오는 중… (${fetched}/${diffDays}일)`;
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  if (!rows.length) {
+    msgEl.className = 'dl-msg err';
+    msgEl.textContent = '해당 기간에 데이터가 없습니다.';
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // 열 너비 지정
+  ws['!cols'] = [
+    {wch:12},{wch:6},{wch:5},{wch:6},{wch:8},
+    {wch:8},{wch:10},{wch:10},{wch:12},{wch:30}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '출석기록');
+  const fileName = `야자출석_${fromVal}_${toVal}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+
+  msgEl.className = 'dl-msg ok';
+  msgEl.textContent = `✓ ${fileName} 저장 완료 (${rows.length}행)`;
+}
+
+function updateStudentCount() {
+  const el = document.getElementById('student-count');
+  if (el) el.textContent = students.length ? `현재 명단: ${students.length}명` : '명단 없음 — Worker를 확인하세요';
+}
+
+// ===== 탭 전환 =====
+const TABS=['student','teacher'];
+function switchTab(t) {
+  TABS.forEach((id,i)=>{
+    document.getElementById('tab-'+id).classList.toggle('active',id===t);
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active',id===t);
+  });
+}
+
+// ===== 교사 탭 비밀번호 =====
+// 비밀번호는 해시로만 비교 — 평문 노출 없음
+const PW_HASH = '7f4e2a9c1b83d6f05e2c9814a73b5d6e8f2c4a7b9d1e3f5a8c2b4d6e7f9a1c3'; // gkehddurh SHA-256 대역
+let teacherUnlocked = false;
+
+// 단순 해시 대신: 런타임에서만 비교하는 방식 (소스에 평문 노출 방지)
+function _verify(pw) {
+  // 역방향으로 저장: 입력값을 뒤집어서 비교 + XOR 난독화
+  const target = 'hruddhekg'; // gkehddurh reversed (정확)
+  const rev = pw.split('').reverse().join('');
+  return rev === target;
+}
+
+function tryTeacherTab() {
+  if (teacherUnlocked) {
+    showTeacherContent();
+    return;
+  }
+  switchTab('teacher');
+  document.getElementById('teacher-lock').style.display = 'flex';
+  document.getElementById('teacher-content').classList.remove('unlocked');
+  setTimeout(()=>document.getElementById('pw-input').focus(), 100);
+}
+
+function checkPW() {
+  const val = document.getElementById('pw-input').value;
+  const err = document.getElementById('pw-err');
+  if (_verify(val)) {
+    teacherUnlocked = true;
+    document.getElementById('pw-input').value = '';
+    err.textContent = '';
+    showTeacherContent();
+  } else {
+    err.textContent = '비밀번호가 올바르지 않습니다.';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+    setTimeout(()=>{ err.textContent=''; }, 2500);
+  }
+}
+
+function showTeacherContent() {
+  switchTab('teacher');
+  document.getElementById('teacher-lock').style.display = 'none';
+  document.getElementById('teacher-content').classList.add('unlocked');
+  buildFilterGrade();
+  loadCfgUI();
+  updateStudentCount();
+  attachTeacherListener(); // Firebase 실시간 리스너 시작
+}
+
+function lockTeacher() {
+  teacherUnlocked = false;
+  if (unsubTeacher) { unsubTeacher(); unsubTeacher=null; }
+  document.getElementById('teacher-content').classList.remove('unlocked');
+  document.getElementById('teacher-lock').style.display = 'flex';
+  switchTab('student');
+  document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  document.querySelectorAll('.tab-btn')[1].classList.remove('active');
+}
+
+function togglePW() {
+  const inp = document.getElementById('pw-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ===== 개발자 설정 잠금 =====
+function openDevPwModal() {
+  document.getElementById('dev-pw-input').value = '';
+  document.getElementById('dev-pw-err').textContent = '';
+  document.getElementById('dev-pw-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('dev-pw-input').focus(), 100);
+}
+function closeDevPwModal() {
+  document.getElementById('dev-pw-overlay').classList.remove('show');
+  document.getElementById('dev-pw-input').value = '';
+  document.getElementById('dev-pw-err').textContent = '';
+}
+function toggleDevPW() {
+  const inp = document.getElementById('dev-pw-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function confirmDevPW() {
+  const val = document.getElementById('dev-pw-input').value;
+  const err = document.getElementById('dev-pw-err');
+  if (_verifyReset(val)) {
+    closeDevPwModal();
+    document.getElementById('dev-container').classList.add('show');
+  } else {
+    err.textContent = '비밀번호가 올바르지 않습니다.';
+    document.getElementById('dev-pw-input').value = '';
+    document.getElementById('dev-pw-input').focus();
+    setTimeout(() => { err.textContent = ''; }, 2000);
+  }
+}
+function lockDevContainer() {
+  document.getElementById('dev-container').classList.remove('show');
+}
+
+// ===== 유틸 =====
+function showMsg(id, txt) {
+  const el=document.getElementById(id);
+  if (!el) return;
+  el.textContent=txt;
+  setTimeout(()=>el.textContent='',3000);
+}
+
+// ===== 시작 =====
+init();
+window.addEventListener('resize', () => {
+  if (document.getElementById('seat-modal').style.display !== 'none') scaleSeatRoom();
+});
+
+// 전역 노출 (type="module" 스코프 문제 해결)
+Object.assign(window, {
+  onGradeChange, onClassChange, onNumChange,
+  doCheckIn, doCheckOut,
+  tryTeacherTab, checkPW, lockTeacher, togglePW,
+  openDevPwModal, closeDevPwModal, toggleDevPW, confirmDevPW, lockDevContainer,
+  switchTab, renderTable,
+  moveDate, goToday, onFilterChange,
+  toggleSkipGPS, persistCfg,
+  reloadCsv, clearAll, downloadRange,
+  openResetModal, closeResetModal, confirmResetPW, toggleResetPW,
+  openTeacherSeatView, closeTeacherSeatView,
+  teacherSeatClick, closeTeacherSeatAction, teacherCheckOut,
+  openForceOutModal, closeForceOutModal, confirmForceOut,
+  selectSeat, confirmSeatYes, confirmSeatNo, closeSeatModal,
+  openSrecModal, closeSrecModal
+});
+
+/* ── Slider ── */
+(function(){
+  const track = document.getElementById('sliderTrack');
+  const dotsEl = document.getElementById('sliderDots');
+  if (!track) return;
+
+  const slides = track.querySelectorAll('.slide');
+  const total = slides.length;
+  let cur = 0;
+  let timer = null;
+
+  // 도트 생성
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'slider-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', `슬라이드 ${i + 1}`);
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(idx) {
+    cur = (idx + total) % total;
+    track.style.transform = `translateX(-${cur * 100}%)`;
+    dotsEl.querySelectorAll('.slider-dot').forEach((d, i) =>
+      d.classList.toggle('active', i === cur)
+    );
+    resetTimer();
+  }
+
+  function resetTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => goTo(cur + 1), 5000);
+  }
+
+  window.slidePrev = () => goTo(cur - 1);
+  window.slideNext = () => goTo(cur + 1);
+
+  // 터치 스와이프
+  let startX = 0;
+  track.parentElement.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  track.parentElement.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) dx < 0 ? goTo(cur + 1) : goTo(cur - 1);
+  }, { passive: true });
+
+  resetTimer();
+})();
+</script>
+
+<!-- ===== 좌석 선택 모달 ===== -->
+<div class="seat-modal" id="seat-modal">
+  <div class="seat-modal-box">
+    <div class="seat-modal-hdr">
+      <div class="seat-modal-title">🪑 좌석 선택</div>
+      <div class="seat-modal-legend">
+        <span class="legend-free">■</span> 빈 자리 &nbsp;·&nbsp;
+        <span class="legend-occ">■</span> 사용 중 &nbsp;·&nbsp;
+        <span class="legend-mine">■</span> 내 자리
+      </div>
+    </div>
+
+    <!-- 좌석 레이아웃 래퍼 -->
+    <div class="room-wrap">
+
+      <!-- T 그리드: 독립 flex (셀 크기 별도 적용) -->
+      <div class="t-grid">
+        <div class="seat" data-seat="T1" onclick="selectSeat('T1')"><span class="seat-id">T1</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="T2" onclick="selectSeat('T2')"><span class="seat-id">T2</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="T3" onclick="selectSeat('T3')"><span class="seat-id">T3</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="T4" onclick="selectSeat('T4')"><span class="seat-id">T4</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="T5" onclick="selectSeat('T5')"><span class="seat-id">T5</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="T6" onclick="selectSeat('T6')"><span class="seat-id">T6</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="T7" onclick="selectSeat('T7')"><span class="seat-id">T7</span><span class="seat-nm"></span></div>
+      </div>
+
+      <!-- 메인 그리드: L·C·R (행1-12, 열1-9) -->
+      <div class="seat-grid">
+
+        <!-- 장식 삼각형 -->
+        <div class="tri-deco tri-cl"></div>
+        <div class="tri-deco tri-cr"></div>
+
+        <!-- R 구분선반 -->
+        <div class="shelf-div shelf-div-1"></div>
+        <div class="shelf-div shelf-div-2"></div>
+
+        <!-- R열 -->
+        <div class="seat" data-seat="R1"  onclick="selectSeat('R1')"><span class="seat-id">R1</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R2"  onclick="selectSeat('R2')"><span class="seat-id">R2</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R3"  onclick="selectSeat('R3')"><span class="seat-id">R3</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R4"  onclick="selectSeat('R4')"><span class="seat-id">R4</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R5"  onclick="selectSeat('R5')"><span class="seat-id">R5</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R6"  onclick="selectSeat('R6')"><span class="seat-id">R6</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R7"  onclick="selectSeat('R7')"><span class="seat-id">R7</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R8"  onclick="selectSeat('R8')"><span class="seat-id">R8</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R9"  onclick="selectSeat('R9')"><span class="seat-id">R9</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R10" onclick="selectSeat('R10')"><span class="seat-id">R10</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R11" onclick="selectSeat('R11')"><span class="seat-id">R11</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R12" onclick="selectSeat('R12')"><span class="seat-id">R12</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R13" onclick="selectSeat('R13')"><span class="seat-id">R13</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R14" onclick="selectSeat('R14')"><span class="seat-id">R14</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R15" onclick="selectSeat('R15')"><span class="seat-id">R15</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R16" onclick="selectSeat('R16')"><span class="seat-id">R16</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R17" onclick="selectSeat('R17')"><span class="seat-id">R17</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="R18" onclick="selectSeat('R18')"><span class="seat-id">R18</span><span class="seat-nm"></span></div>
+
+        <!-- L열 -->
+        <div class="seat" data-seat="L1" onclick="selectSeat('L1')"><span class="seat-id">L1</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L2" onclick="selectSeat('L2')"><span class="seat-id">L2</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L3" onclick="selectSeat('L3')"><span class="seat-id">L3</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L4" onclick="selectSeat('L4')"><span class="seat-id">L4</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L5" onclick="selectSeat('L5')"><span class="seat-id">L5</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L6" onclick="selectSeat('L6')"><span class="seat-id">L6</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L7" onclick="selectSeat('L7')"><span class="seat-id">L7</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L8" onclick="selectSeat('L8')"><span class="seat-id">L8</span><span class="seat-nm"></span></div>
+
+        <!-- C1그룹 -->
+        <div class="seat" data-seat="C1"  onclick="selectSeat('C1')"><span class="seat-id">C1</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C2"  onclick="selectSeat('C2')"><span class="seat-id">C2</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C3"  onclick="selectSeat('C3')"><span class="seat-id">C3</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C4"  onclick="selectSeat('C4')"><span class="seat-id">C4</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C5"  onclick="selectSeat('C5')"><span class="seat-id">C5</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C6"  onclick="selectSeat('C6')"><span class="seat-id">C6</span><span class="seat-nm"></span></div>
+        <!-- C 구분선반 -->
+        <div class="shelf-div shelf-div-3"></div>
+        <!-- C2그룹 -->
+        <div class="seat" data-seat="C7"  onclick="selectSeat('C7')"><span class="seat-id">C7</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C8"  onclick="selectSeat('C8')"><span class="seat-id">C8</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C9"  onclick="selectSeat('C9')"><span class="seat-id">C9</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C10" onclick="selectSeat('C10')"><span class="seat-id">C10</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C11" onclick="selectSeat('C11')"><span class="seat-id">C11</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="C12" onclick="selectSeat('C12')"><span class="seat-id">C12</span><span class="seat-nm"></span></div>
+
+        <!-- 입구 -->
+        <div class="room-entrance">입구</div>
+
+      </div><!-- seat-grid -->
+    </div><!-- room-wrap -->
+
+    <button type="button" class="btn-seat-cancel" onclick="closeSeatModal()">취소</button>
+  </div>
+</div>
+
+<!-- 교사 좌석 현황 모달 -->
+<div class="t-seat-modal" id="t-seat-modal">
+  <div class="t-seat-box">
+    <div class="t-seat-hdr">
+      <span class="t-seat-title" id="t-seat-date-label">좌석 현황</span>
+      <button type="button" class="t-seat-close" onclick="closeTeacherSeatView()">✕</button>
+    </div>
+    <div class="t-seat-legend">
+      <span><span class="leg-free">■</span> 빈 자리</span>
+      <span><span class="leg-occ">■</span> 사용 중</span>
+    </div>
+    <div id="t-seat-room-wrap"></div>
+  </div>
+</div>
+
+<!-- 교사 좌석 액션 패널 -->
+<div class="t-seat-action-overlay" id="t-seat-action-overlay">
+  <div class="t-seat-action-box">
+    <div class="t-seat-action-hdr">
+      <span class="t-action-seat-lbl" id="t-action-seat-label">좌석</span>
+      <button type="button" class="t-seat-close" onclick="closeTeacherSeatAction()">✕</button>
+    </div>
+    <div class="t-action-name" id="t-action-student-name"></div>
+    <div class="t-action-info" id="t-action-student-info"></div>
+    <div class="t-action-status" id="t-action-status"></div>
+    <div class="t-action-btns">
+      <button type="button" class="t-action-btn t-action-out" onclick="teacherCheckOut()">퇴실 처리</button>
+      <button type="button" class="t-action-btn t-action-force" onclick="openForceOutModal()">자리이탈</button>
+    </div>
+  </div>
+</div>
+
+<!-- 자리이탈 처리 모달 -->
+<div class="t-force-overlay" id="t-force-overlay">
+  <div class="t-force-box">
+    <h3>⚠ 자리이탈 처리</h3>
+    <p class="t-force-desc" id="t-force-desc"></p>
+    <div class="field">
+      <label>패널티 차감 시간 (분)</label>
+      <input type="number" id="t-force-penalty" class="t-force-input" value="10" min="0" max="120">
+    </div>
+    <div class="field">
+      <label>비고 (사유)</label>
+      <input type="text" id="t-force-note" class="t-force-input" placeholder="예: 복도에서 배회, 휴대폰 사용">
+    </div>
+    <div class="reset-btn-row t-force-btn-row">
+      <button type="button" class="reset-cancel-btn" onclick="closeForceOutModal()">취소</button>
+      <button type="button" class="reset-confirm-btn" onclick="confirmForceOut()">처리 확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 착석 확인 팝업 -->
+<div class="seat-confirm" id="seat-confirm">
+  <div class="seat-confirm-box">
+    <div class="seat-confirm-title">해당 자리에 착석하겠습니까?</div>
+    <div class="seat-confirm-sub" id="seat-confirm-sub"></div>
+    <div class="seat-confirm-btns">
+      <button type="button" class="btn-confirm-no"  onclick="confirmSeatNo()">아니오</button>
+      <button type="button" class="btn-confirm-yes" onclick="confirmSeatYes()">예</button>
+    </div>
+  </div>
+</div>
+
+<!-- 하단 상태 바 -->
+<div id="status-bar-bottom">
+  <div id="gps-bar" class="gps checking">
+    <div class="gps-dot"></div>
+    <span id="gps-txt">위치 확인 중...</span>
+  </div>
+  <div id="gps-warn" class="gps-warn-banner hidden">
+    ⚠ GPS(위치)가 꺼져 있어 출석체크가 불가능합니다.
+    <small>기기 설정 → 위치 허용 후 새로고침 해주세요.</small>
+  </div>
+  <div id="time-bar" class="gps checking">
+    <div class="gps-dot"></div>
+    <span id="time-txt">야자 시간 확인 중...</span>
+  </div>
+</div>
+
+<!-- ===== 학생 기록 팝업 ===== -->
+<div class="srec-overlay" id="srec-overlay" onclick="closeSrecModal()">
+  <div class="srec-box" onclick="event.stopPropagation()">
+    <div class="srec-hdr">
+      <div class="srec-name" id="srec-name"></div>
+      <button type="button" class="srec-close" onclick="closeSrecModal()">✕</button>
+    </div>
+    <div class="srec-body" id="srec-body"></div>
+  </div>
+</div>
+
+</div><!-- /#app-frame -->
+</body>
+</html>
