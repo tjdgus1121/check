@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>야자 출석체크</title>
+<link rel="manifest" href="./check.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="야자체크">
+<meta name="theme-color" content="#1A1A1A">
+<link rel="shortcut icon" href="faviconstudy.png" type="image/x-icon">
+<link rel="apple-touch-icon" href="./faviconstudy.png">
 <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -21,10 +29,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .tab-content.active{flex:1;overflow-y:auto;overflow-x:hidden;}
 @media (min-width:500px){
   body{background:#888;display:flex;justify-content:center;align-items:center;padding:24px 0;}
-  #app-frame{max-width:430px;min-height:unset;height:min(930px,95dvh);overflow:hidden;border-radius:40px;box-shadow:0 0 40px rgba(0,0,0,.35);}
+  #app-frame{max-width:430px;min-height:unset;height:min(930px,95vh);height:min(930px,95dvh);overflow:hidden;border-radius:40px;box-shadow:0 0 40px rgba(0,0,0,.35);}
 }
 @media (min-width:768px){
-  #app-frame{max-width:700px;height:min(960px,95dvh);}
+  #app-frame{max-width:700px;height:min(960px,95vh);height:min(960px,95dvh);}
 }
 
 /* ── Header ── */
@@ -386,6 +394,21 @@ tr:hover td{background:#FAFAFA;}
 #status-bar-bottom{display:flex;flex-direction:column;gap:4px;padding:6px 16px 10px;background:var(--bg);}
 #status-bar-bottom .gps{flex:1;margin-bottom:0;border-radius:8px;padding:7px 10px;font-size:11px;}
 #status-bar-bottom .gps-warn-banner{flex:1;border-radius:8px;padding:7px 10px;margin-bottom:0;font-size:11px;}
+/* ── 홈 화면 추가 배너 ── */
+#pwa-banner{display:none;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:linear-gradient(135deg,#0F6E56,#1D9E75);}
+.pwa-banner-desc{font-size:12px;color:#fff;font-weight:600;line-height:1.5;flex:1;}
+.pwa-banner-desc small{display:block;font-weight:400;opacity:.8;font-size:11px;}
+#pwa-install-btn{padding:10px 16px;background:#fff;color:var(--green-d);border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;}
+#pwa-install-btn:active{opacity:.85;}
+/* iOS 안내 모달 */
+.ios-guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1300;display:none;align-items:flex-end;justify-content:center;}
+.ios-guide-overlay.show{display:flex;}
+.ios-guide-box{background:#fff;border-radius:20px 20px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;text-align:center;}
+.ios-guide-title{font-size:16px;font-weight:700;margin-bottom:12px;}
+.ios-guide-steps{font-size:13px;color:var(--muted);line-height:2;margin-bottom:20px;}
+.ios-guide-steps b{color:var(--text);}
+.ios-guide-icon{width:20px;height:20px;vertical-align:middle;object-fit:contain;}
+.ios-guide-close{width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;}
 .dev-name-row{margin-bottom:8px;}
 .dev-msg{font-size:13px;min-height:18px;}
 .dev-count{margin-top:4px;font-size:12px;color:var(--hint);}
@@ -821,6 +844,10 @@ updateSeatScale();
 async function init() {
   tick(); setInterval(tick, 1000);
   updateHdrDate();
+  // GPS 팝업 즉시 표시 (init 비동기 작업 기다리지 않고)
+  if (navigator.geolocation) {
+    document.getElementById('gps-loading-overlay').style.display = 'flex';
+  }
 
   // 익명 자동 로그인 (사용자 개입 없음)
   try { await signInAnonymously(auth); } catch(e) { console.warn('익명 로그인 실패:', e); }
@@ -957,31 +984,62 @@ async function reverseGeocode(lat, lng) {
 
 function startGPS() {
   const gpsBar = document.getElementById('gps-bar');
-  if (cfg.skipGps) { gpsBar.style.display='none'; setGpsWarn(false); gpsOk=true; syncButtons(); return; }
+  if (cfg.skipGps) { gpsBar.style.display='none'; document.getElementById('gps-loading-overlay').style.display='none'; setGpsWarn(false); gpsOk=true; syncButtons(); return; }
   gpsBar.style.display='';
   if (!navigator.geolocation) { setGPS('fail','GPS를 지원하지 않는 브라우저입니다'); setGpsWarn(true); return; }
   setGPS('checking','위치 확인 중...'); setGpsWarn(false);
   document.getElementById('gps-loading-overlay').style.display = 'flex';
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    const {latitude:la, longitude:lo} = pos.coords;
-    const d = haversine(la, lo, SCHOOL_LAT, SCHOOL_LNG);
-    const addr = await reverseGeocode(la, lo);
-    const addrTxt = addr ? ` · ${addr}` : '';
-    document.getElementById('gps-loading-overlay').style.display = 'none';
-    if (d <= SCHOOL_RADIUS) {
-      setGPS('ok', `학교 내 확인 (${Math.round(d)}m 이내)${addrTxt}`);
-      gpsOk = true; setGpsWarn(false);
-    } else {
-      setGPS('fail', `학교 범위 밖 (${Math.round(d)}m)${addrTxt}`);
-      gpsOk = false; setGpsWarn(false);
-    }
-    syncButtons();
-  }, err=>{
-    document.getElementById('gps-loading-overlay').style.display = 'none';
+
+  let phase1Done = false;
+  const gpsStart = Date.now();
+  const MIN_POPUP_MS = 900; // 팝업 최소 표시 시간
+
+  function hideLoadingDelayed() {
+    const elapsed = Date.now() - gpsStart;
+    const wait = Math.max(0, MIN_POPUP_MS - elapsed);
+    setTimeout(() => { document.getElementById('gps-loading-overlay').style.display = 'none'; }, wait);
+  }
+
+  // 1단계: 저정확도 (WiFi/셀타워) — 빠름, 팝업 최소 시간 후 닫기
+  navigator.geolocation.getCurrentPosition(pos => {
+    phase1Done = true;
+    applyGPSResult(pos.coords.latitude, pos.coords.longitude, false, hideLoadingDelayed);
+  }, err => {
+    phase1Done = true;
+    hideLoadingDelayed();
     const msgs = {1:'위치 권한이 거부됐습니다 — 브라우저 설정에서 위치를 허용해주세요',2:'GPS 신호를 찾을 수 없습니다',3:'GPS 응답 시간 초과'};
     setGPS('fail', msgs[err.code]||'GPS 오류');
     gpsOk = false; setGpsWarn(true); syncButtons();
-  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+  }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 });
+
+  // 2단계: 고정확도 (GPS 칩) — 백그라운드에서 보정
+  navigator.geolocation.getCurrentPosition(pos => {
+    applyGPSResult(pos.coords.latitude, pos.coords.longitude, true, hideLoadingDelayed);
+  }, () => { /* 2단계 실패는 무시, 1단계 결과 유지 */ },
+  { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}
+
+async function applyGPSResult(la, lo, fetchAddr, hideFn) {
+  const d = haversine(la, lo, SCHOOL_LAT, SCHOOL_LNG);
+  if (hideFn) hideFn();
+
+  if (d <= SCHOOL_RADIUS) {
+    setGPS('ok', `학교 내 확인 (${Math.round(d)}m 이내)`);
+    gpsOk = true; setGpsWarn(false);
+  } else {
+    setGPS('fail', `학교 범위 밖 (${Math.round(d)}m)`);
+    gpsOk = false; setGpsWarn(false);
+  }
+  syncButtons();
+
+  // 주소는 고정확도 결과에서만 조용히 추가
+  if (fetchAddr) {
+    const addr = await reverseGeocode(la, lo);
+    if (addr) {
+      const txt = document.getElementById('gps-txt').textContent;
+      document.getElementById('gps-txt').textContent = txt + ` · ${addr}`;
+    }
+  }
 }
 // 제출 시점 GPS 즉시 재검증 (Promise 반환)
 function verifyGPSNow() {
@@ -2010,6 +2068,42 @@ function showMsg(id, txt) {
 
 // ===== 시작 =====
 init();
+
+// ===== PWA 서비스워커 등록 =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./check-sw.js').catch(() => {});
+}
+
+// ===== PWA 홈 화면 추가 배너 =====
+let _deferredPrompt = null;
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+
+if (!isInStandalone) {
+  if (isIos) {
+    // iOS: 안내 배너 표시
+    const b = document.getElementById('pwa-banner');
+    b.style.display = 'flex';
+    document.getElementById('pwa-install-btn').onclick = () => {
+      document.getElementById('ios-guide-overlay').classList.add('show');
+    };
+  } else {
+    // Android/Chrome: beforeinstallprompt 이벤트 캡처
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      document.getElementById('pwa-banner').style.display = 'flex';
+      document.getElementById('pwa-install-btn').onclick = async () => {
+        _deferredPrompt.prompt();
+        const { outcome } = await _deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('pwa-banner').style.display = 'none';
+        }
+        _deferredPrompt = null;
+      };
+    });
+  }
+}
 window.addEventListener('resize', () => {
   if (document.getElementById('seat-modal').style.display !== 'none') scaleSeatRoom();
 });
@@ -2319,6 +2413,28 @@ Object.assign(window, {
   <div id="time-bar" class="gps checking">
     <div class="gps-dot"></div>
     <span id="time-txt">야자 시간 확인 중...</span>
+  </div>
+</div>
+
+<!-- 홈 화면 추가 배너 -->
+<div id="pwa-banner">
+  <div class="pwa-banner-desc">
+    📲 앱으로 설치하기
+    <small>홈 화면에서 빠르게 실행</small>
+  </div>
+  <button type="button" id="pwa-install-btn">설치</button>
+</div>
+
+<!-- iOS 안내 모달 -->
+<div class="ios-guide-overlay" id="ios-guide-overlay">
+  <div class="ios-guide-box">
+    <div class="ios-guide-title">홈 화면에 추가하는 방법</div>
+    <div class="ios-guide-steps">
+      1. 화면 하단 가운데 <b>공유 버튼</b> <img src="./share.png" class="ios-guide-icon" alt="공유"> 누르기<br>
+      2. 스크롤 내려서 <b>"홈 화면에 추가"</b> <img src="./more.png" class="ios-guide-icon" alt="추가"> 누르기<br>
+      3. 오른쪽 위 <b>"추가"</b> 누르기
+    </div>
+    <button type="button" class="ios-guide-close" onclick="document.getElementById('ios-guide-overlay').classList.remove('show')">확인</button>
   </div>
 </div>
 
