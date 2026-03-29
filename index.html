@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>야자 출석체크</title>
+<link rel="manifest" href="./check.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="야자체크">
+<meta name="theme-color" content="#1A1A1A">
+<link rel="shortcut icon" href="faviconstudy.png" type="image/x-icon">
+<link rel="apple-touch-icon" href="./faviconstudy.png">
 <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -21,7 +29,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .tab-content.active{flex:1;overflow-y:auto;overflow-x:hidden;}
 @media (min-width:500px){
   body{background:#888;display:flex;justify-content:center;align-items:center;padding:24px 0;}
-  #app-frame{max-width:430px;min-height:unset;height:min(930px,95dvh);overflow:hidden;border-radius:40px;box-shadow:0 0 40px rgba(0,0,0,.35);}
+  #app-frame{max-width:430px;min-height:unset;height:min(930px,95vh);height:min(930px,95dvh);overflow:hidden;border-radius:40px;box-shadow:0 0 40px rgba(0,0,0,.35);}
+}
+@media (min-width:768px){
+  #app-frame{max-width:700px;height:min(960px,95vh);height:min(960px,95dvh);}
 }
 
 /* ── Header ── */
@@ -42,6 +53,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* ── Card ── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
 .card-title{font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+.card-title-main{font-size:13px;color:var(--fg);text-align:center;text-transform:none;letter-spacing:0;}
 
 /* ── GPS status ── */
 .gps{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;transition:.3s;}
@@ -164,7 +176,15 @@ tr:hover td{background:#FAFAFA;}
 /* ── 교사 좌석 현황 모달 ── */
 .t-seat-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px;}
 .t-seat-modal.show{display:flex;}
-.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;overflow:auto;width:fit-content;}
+.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;max-width:calc(100vw - 24px);overflow:auto;width:fit-content;}
+@media (orientation:portrait){
+  .t-seat-modal{padding:8px;}
+  .t-seat-box{max-height:90vh;overflow:auto;}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .t-seat-modal{padding:0;}
+  .t-seat-box{border-radius:0;max-height:100vh;}
+}
 .t-seat-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .t-seat-title{font-size:15px;font-weight:700;}
 .t-seat-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--hint);line-height:1;padding:2px 6px;}
@@ -306,11 +326,14 @@ tr:hover td{background:#FAFAFA;}
 .legend-free{color:var(--green);}
 .legend-occ{color:#F87171;}
 .legend-mine{color:var(--blue);}
-/* 세로 모드: 스케일 축소 */
-@media (orientation:portrait){
+/* 세로 모드: 패딩 최소화 + JS zoom 으로 전체 축소 */
+@media (orientation:portrait) and (max-width:499px){
   .seat-modal{padding:8px;}
-  .seat-modal-box{overflow:auto;max-height:90vh;}
+  .seat-modal-box{overflow:auto;max-height:90vh;padding:12px 8px;}
+  .t-seat-box{padding:12px 8px;}
 }
+/* room-wrap 전체를 vw 기반으로 zoom */
+.room-wrap{zoom:var(--seat-scale,1);}
 /* 가로 모드 (저사양): 풀스크린 */
 @media (orientation:landscape) and (max-height:500px){
   .seat-modal{padding:0;}
@@ -368,15 +391,43 @@ tr:hover td{background:#FAFAFA;}
 .dev-hidden{display:none;}
 .gps-warn-banner{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:12px;line-height:1.6;padding:8px 14px;}
 .gps-warn-banner.hidden{display:none;}
-#status-bar-bottom{z-index:100;background:#fff;border-top:2px solid var(--border);padding:8px 14px;display:flex;gap:8px;align-items:center;}
+#status-bar-bottom{display:flex;flex-direction:column;gap:4px;padding:6px 16px 10px;background:var(--bg);}
 #status-bar-bottom .gps{flex:1;margin-bottom:0;border-radius:8px;padding:7px 10px;font-size:11px;}
 #status-bar-bottom .gps-warn-banner{flex:1;border-radius:8px;padding:7px 10px;margin-bottom:0;font-size:11px;}
+/* ── 홈 화면 추가 배너 ── */
+#pwa-banner{display:none;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:linear-gradient(135deg,#0F6E56,#1D9E75);}
+.pwa-banner-desc{font-size:12px;color:#fff;font-weight:600;line-height:1.5;flex:1;}
+.pwa-banner-desc small{display:block;font-weight:400;opacity:.8;font-size:11px;}
+#pwa-install-btn{padding:10px 16px;background:#fff;color:var(--green-d);border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;}
+#pwa-install-btn:active{opacity:.85;}
+/* iOS 안내 모달 */
+.ios-guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1300;display:none;align-items:flex-end;justify-content:center;}
+.ios-guide-overlay.show{display:flex;}
+.ios-guide-box{background:#fff;border-radius:20px 20px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;text-align:center;}
+.ios-guide-title{font-size:16px;font-weight:700;margin-bottom:12px;}
+.ios-guide-steps{font-size:13px;color:var(--muted);line-height:2;margin-bottom:20px;}
+.ios-guide-steps b{color:var(--text);}
+.ios-guide-icon{width:20px;height:20px;vertical-align:middle;object-fit:contain;}
+.ios-guide-close{width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;}
 .dev-name-row{margin-bottom:8px;}
 .dev-msg{font-size:13px;min-height:18px;}
 .dev-count{margin-top:4px;font-size:12px;color:var(--hint);}
+.del-name-preview{font-size:13px;color:var(--muted);min-height:18px;margin-bottom:8px;text-align:center;}
+.del-msg{margin-top:6px;text-align:center;}
 .dev-gps-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;}
+.dev-gps-label+.dev-gps-label{margin-top:10px;}
+.cfg-save-msg{margin-top:8px;font-size:12px;min-height:16px;}
 .dev-gps-cb{width:16px;height:16px;}
 .dev-cancel-btn{margin-top:10px;width:100%;}
+.modal-err{font-size:12px;color:var(--red-d);min-height:16px;margin-top:8px;text-align:center;word-break:keep-all;}
+
+/* ── GPS 로딩 팝업 ── */
+.gps-loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;display:none;align-items:center;justify-content:center;}
+.gps-loading-box{background:#fff;border-radius:20px;padding:32px 40px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);min-width:220px;}
+.gps-loading-spinner{width:40px;height:40px;border:4px solid #E5E7EB;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gps-loading-text{font-size:15px;font-weight:700;color:var(--fg);margin-bottom:4px;}
+.gps-loading-sub{font-size:12px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -402,7 +453,7 @@ tr:hover td{background:#FAFAFA;}
   <div class="content">
 
     <div class="card">
-      <div class="card-title">학생 선택</div>
+      <div class="card-title card-title-main">학생 선택</div>
       <div class="sel-grid">
         <div class="sel-wrap"><label>학년</label>
           <select id="sel-grade" onchange="onGradeChange()"><option value="">선택</option></select>
@@ -585,13 +636,36 @@ tr:hover td{background:#FAFAFA;}
             <div id="student-count" class="dev-count"></div>
           </div>
 
-          <!-- GPS 검증 우회 (운영 중 비노출) -->
-          <div class="card dev-card-gap dev-hidden">
-            <div class="card-title">GPS 검증 우회</div>
+          <div class="card dev-card-gap">
+            <div class="card-title">학생 기록 삭제</div>
+            <div class="sel-grid" style="margin-bottom:8px;">
+              <div class="sel-wrap"><label>학년</label>
+                <select id="del-grade" onchange="devFillClass()"><option value="">선택</option><option>1</option><option>2</option><option>3</option></select>
+              </div>
+              <div class="sel-wrap"><label>반</label>
+                <select id="del-class" onchange="devFillNum()"><option value="">선택</option></select>
+              </div>
+              <div class="sel-wrap"><label>번호</label>
+                <select id="del-num"><option value="">선택</option></select>
+              </div>
+            </div>
+            <div id="del-name-preview" class="del-name-preview"></div>
+            <button type="button" class="btn-danger btn-danger-full" onclick="deleteStudentRecord()">이 학생 오늘 기록 삭제</button>
+            <div id="del-msg" class="dev-msg del-msg"></div>
+          </div>
+
+          <!-- GPS 검증 우회 -->
+          <div class="card dev-card-gap">
+            <div class="card-title">개발자 우회 설정</div>
             <label class="dev-gps-label">
               <input type="checkbox" id="skip-gps" class="dev-gps-cb" onchange="toggleSkipGPS()">
               GPS 검증 건너뛰기
             </label>
+            <label class="dev-gps-label">
+              <input type="checkbox" id="skip-time" class="dev-gps-cb" onchange="toggleSkipTime()">
+              시간 제한 건너뛰기 (17:20~20:40 무시)
+            </label>
+            <div id="cfg-save-msg" class="cfg-save-msg"></div>
           </div>
 
           <div class="card card-danger dev-card-gap">
@@ -646,7 +720,7 @@ tr:hover td{background:#FAFAFA;}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getDatabase, ref, get, set, onValue, child, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDRoFD69iYf1MBAxE2-NywDxvbbIrYsnUU",
@@ -661,9 +735,16 @@ const app  = initializeApp(firebaseConfig);
 const db   = getDatabase(app);
 const auth = getAuth(app);
 
+// 교사 계정 이메일 — Firebase Console에서 생성한 계정과 일치해야 함
+const TEACHER_EMAIL = 'teacher@yaja.school';
+// 개발자 계정 이메일 — Firebase Console에서 생성한 계정과 일치해야 함
+const DEV_EMAIL = 'dev@yaja.school';
+// 초기화 전용 계정 이메일 — 출석 데이터 전체 삭제 2단계 인증에만 사용
+const RESET_EMAIL = 'reset@yaja.school';
+
 // ===== 상태 =====
 let students = [];
-let cfg = { skipGps: true }; // 테스트 모드
+let cfg = { skipGps: false, skipTime: false };
 
 // ===== 쉬는시간(19:00~19:20) 제외 재실 ms 계산 =====
 function calcNetMs(from, to) {
@@ -701,36 +782,72 @@ let unsubTeacher = null;
 // ===== 학생 명단 로드 (Cloudflare Worker 경유) =====
 const WORKER_URL = 'https://students.tjdgus1121.workers.dev/';
 
-async function loadStudentsFromCsv() {
+const STUDENTS_CACHE_KEY = 'yaja_students_cache';
+
+function parseCsv(text) {
+  const sep = text.includes('\t') ? '\t' : ',';
+  const rows = text.trim().split('\n').map(r =>
+    r.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
+  );
+  const first = rows[0];
+  const isHeader = isNaN(Number(first[0])) || isNaN(Number(first[1]));
+  const dataRows = isHeader ? rows.slice(1) : rows;
+  const parsed = [];
+  dataRows.forEach(row => {
+    const 학년=parseInt(row[0]), 반=parseInt(row[1]), 번호=parseInt(row[2]), 이름=(row[3]||'').trim();
+    if (!isNaN(학년) && !isNaN(반) && !isNaN(번호) && 이름) parsed.push({학년,반,번호,이름});
+  });
+  return parsed;
+}
+
+async function loadStudentsFromCsv(bustCache = false) {
+  // 1) localStorage 캐시 즉시 적용 (화면 빠르게 뜸)
   try {
-    const res = await fetch(WORKER_URL + '?t=' + Date.now());
+    const cached = localStorage.getItem(STUDENTS_CACHE_KEY);
+    if (cached) { students = JSON.parse(cached); buildGradeSelects(); buildFilterGrade(); }
+  } catch(e) {}
+
+  // 2) Worker에서 최신 데이터 fetch (bustCache=true면 강제 갱신)
+  try {
+    const url = bustCache ? WORKER_URL + '?t=' + Date.now() : WORKER_URL;
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
-    const sep = text.includes('\t') ? '\t' : ','; // 탭/쉼표 자동 감지
-    const rows = text.trim().split('\n').map(r =>
-      r.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
-    );
-    const first = rows[0];
-    const isHeader = isNaN(Number(first[0])) || isNaN(Number(first[1]));
-    const dataRows = isHeader ? rows.slice(1) : rows;
-    const parsed = [];
-    dataRows.forEach(row => {
-      const 학년=parseInt(row[0]), 반=parseInt(row[1]), 번호=parseInt(row[2]), 이름=(row[3]||'').trim();
-      if (!isNaN(학년) && !isNaN(반) && !isNaN(번호) && 이름) parsed.push({학년,반,번호,이름});
-    });
+    const parsed = parseCsv(text);
     if (parsed.length === 0) throw new Error('유효한 학생 데이터 없음');
     students = parsed;
+    localStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(parsed));
     return true;
   } catch(e) {
     console.warn('학생 명단 로드 실패:', e);
-    return false;
+    return students.length > 0; // 캐시라도 있으면 성공으로 처리
   }
 }
+
+// ===== 좌석 맵 zoom 스케일 (vw 기반) =====
+// room-wrap 자연 너비: 9×46px + 8×5px gap + 14+14px padding + 4px border = 490px
+function updateSeatScale() {
+  const portrait = window.innerHeight > window.innerWidth;
+  if (!portrait || window.innerWidth >= 500) {
+    document.documentElement.style.setProperty('--seat-scale', '1');
+    return;
+  }
+  // 사용 가능한 너비: vw - (모달 패딩 8×2) - (박스 패딩 8×2)
+  const available = window.innerWidth - 32;
+  const scale = Math.min(1, available / 490);
+  document.documentElement.style.setProperty('--seat-scale', scale.toFixed(4));
+}
+window.addEventListener('resize', updateSeatScale);
+updateSeatScale();
 
 // ===== 초기화 =====
 async function init() {
   tick(); setInterval(tick, 1000);
   updateHdrDate();
+  // GPS 팝업 즉시 표시 (init 비동기 작업 기다리지 않고)
+  if (navigator.geolocation) {
+    document.getElementById('gps-loading-overlay').style.display = 'flex';
+  }
 
   // 익명 자동 로그인 (사용자 개입 없음)
   try { await signInAnonymously(auth); } catch(e) { console.warn('익명 로그인 실패:', e); }
@@ -761,7 +878,7 @@ async function init() {
 
 // ===== 20:40 자동 퇴실 처리 =====
 function scheduleAutoCheckout() {
-  if (cfg.skipGps) return; // 개발 모드에선 실행 안 함
+  if (cfg.skipTime) return; // 시간 제한 건너뛰기 모드에선 자동퇴실 불필요
   const now = new Date();
   const end = new Date(now);
   end.setHours(20, 40, 0, 0);
@@ -794,7 +911,7 @@ function isStudyTime() {
 function updateTimeBar() {
   const bar = document.getElementById('time-bar');
   const txt = document.getElementById('time-txt');
-  if (cfg.skipGps) {
+  if (cfg.skipTime) {
     bar.className = 'gps skip';
     txt.textContent = '시간 제한 건너뛰기 모드 (개발자)';
     return;
@@ -838,31 +955,91 @@ function fmtDur(ms) {
   const h = Math.floor(m/60), rem = m%60;
   return h ? `${h}시간 ${rem}분` : `${m}분`;
 }
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
 
 // ===== GPS =====
 function setGpsWarn(show) {
   document.getElementById('gps-warn').classList.toggle('hidden', !show);
 }
+// 카카오 역지오코딩 Worker URL — Cloudflare Worker가 API 키를 보관
+const GEOCODE_WORKER_URL = 'https://students.tjdgus1121.workers.dev/geocode';
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`${GEOCODE_WORKER_URL}?lat=${lat}&lng=${lng}`);
+    const data = await res.json();
+    const addr = data.documents?.[0]?.address;
+    if (!addr) return '';
+    const city = addr.region_2depth_name || '';   // 시/군/구 (예: 진주시)
+    const dong = addr.region_3depth_name || '';   // 동/읍/면/리 (예: 평거동)
+    return [city, dong].filter(Boolean).join(' ');
+  } catch(e) {
+    return '';
+  }
+}
+
 function startGPS() {
-  if (cfg.skipGps) { setGPS('skip','GPS 검증 건너뛰기 모드'); setGpsWarn(false); gpsOk=true; syncButtons(); return; }
+  const gpsBar = document.getElementById('gps-bar');
+  if (cfg.skipGps) { gpsBar.style.display='none'; document.getElementById('gps-loading-overlay').style.display='none'; setGpsWarn(false); gpsOk=true; syncButtons(); return; }
+  gpsBar.style.display='';
   if (!navigator.geolocation) { setGPS('fail','GPS를 지원하지 않는 브라우저입니다'); setGpsWarn(true); return; }
   setGPS('checking','위치 확인 중...'); setGpsWarn(false);
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const {latitude:la, longitude:lo} = pos.coords;
-    const d = haversine(la, lo, SCHOOL_LAT, SCHOOL_LNG);
-    if (d <= SCHOOL_RADIUS) {
-      setGPS('ok', `학교 내 확인 (${Math.round(d)}m 이내)`);
-      gpsOk = true; setGpsWarn(false);
-    } else {
-      setGPS('fail', `학교 범위 밖 (${Math.round(d)}m — 허용 ${SCHOOL_RADIUS}m)`);
-      gpsOk = false; setGpsWarn(false);
-    }
-    syncButtons();
-  }, err=>{
+  document.getElementById('gps-loading-overlay').style.display = 'flex';
+
+  let phase1Done = false;
+  const gpsStart = Date.now();
+  const MIN_POPUP_MS = 900; // 팝업 최소 표시 시간
+
+  function hideLoadingDelayed() {
+    const elapsed = Date.now() - gpsStart;
+    const wait = Math.max(0, MIN_POPUP_MS - elapsed);
+    setTimeout(() => { document.getElementById('gps-loading-overlay').style.display = 'none'; }, wait);
+  }
+
+  // 1단계: 저정확도 (WiFi/셀타워) — 빠름, 팝업 최소 시간 후 닫기
+  navigator.geolocation.getCurrentPosition(pos => {
+    phase1Done = true;
+    applyGPSResult(pos.coords.latitude, pos.coords.longitude, false, hideLoadingDelayed);
+  }, err => {
+    phase1Done = true;
+    hideLoadingDelayed();
     const msgs = {1:'위치 권한이 거부됐습니다 — 브라우저 설정에서 위치를 허용해주세요',2:'GPS 신호를 찾을 수 없습니다',3:'GPS 응답 시간 초과'};
     setGPS('fail', msgs[err.code]||'GPS 오류');
     gpsOk = false; setGpsWarn(true); syncButtons();
-  });
+  }, { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 });
+
+  // 2단계: 고정확도 (GPS 칩) — 백그라운드에서 보정
+  navigator.geolocation.getCurrentPosition(pos => {
+    applyGPSResult(pos.coords.latitude, pos.coords.longitude, true, hideLoadingDelayed);
+  }, () => { /* 2단계 실패는 무시, 1단계 결과 유지 */ },
+  { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}
+
+async function applyGPSResult(la, lo, fetchAddr, hideFn) {
+  const d = haversine(la, lo, SCHOOL_LAT, SCHOOL_LNG);
+  if (hideFn) hideFn();
+
+  if (d <= SCHOOL_RADIUS) {
+    setGPS('ok', `학교 내 확인 (${Math.round(d)}m 이내)`);
+    gpsOk = true; setGpsWarn(false);
+  } else {
+    setGPS('fail', `학교 범위 밖 (${Math.round(d)}m)`);
+    gpsOk = false; setGpsWarn(false);
+  }
+  syncButtons();
+
+  // 주소는 고정확도 결과에서만 조용히 추가
+  if (fetchAddr) {
+    const addr = await reverseGeocode(la, lo);
+    if (addr) {
+      const txt = document.getElementById('gps-txt').textContent;
+      document.getElementById('gps-txt').textContent = txt + ` · ${addr}`;
+    }
+  }
 }
 // 제출 시점 GPS 즉시 재검증 (Promise 반환)
 function verifyGPSNow() {
@@ -949,7 +1126,7 @@ async function loadMyRec(sid) {
 function syncButtons() {
   const sid = getSid();
   const rec = myTodayRec;
-  const base = !!sid && gpsOk && (isStudyTime() || cfg.skipGps);
+  const base = !!sid && gpsOk && (isStudyTime() || cfg.skipTime);
   // 입실 가능: 기록 없음 OR (1회차 완료 + 2회차 미시작)
   const canIn  = base && (!rec?.in || (rec?.out && !rec?.in2));
   // 퇴실 가능: 1회차 재실 중 OR 2회차 재실 중
@@ -1003,10 +1180,12 @@ function openSeatModal() {
   renderSeats();
   document.getElementById('seat-modal').style.display = 'flex';
   requestAnimationFrame(scaleSeatRoom);
+  _pushModal();
 }
-function closeSeatModal() {
+function closeSeatModal(fromBack) {
   document.getElementById('seat-modal').style.display = 'none';
   pendingSeatId = null;
+  if (!fromBack) _pullModal();
 }
 
 function selectSeat(id) {
@@ -1021,19 +1200,22 @@ function confirmSeatNo() {
 }
 async function confirmSeatYes() {
   const sid = getSid(); if (!sid || !pendingSeatId) return;
-  if (!cfg.skipGps) {
-    const ok = await verifyGPSNow();
-    if (!ok) { alert('학교 위치가 확인되지 않습니다.'); return; }
-  }
-  const dk = fmtDateKey(new Date());
-  const [g,c,n] = sid.split('-').map(Number);
-  const student = students.find(s => s.학년===g && s.반===c && s.번호===n);
-  const name = student?.이름 || '';
-  // 1회차 완료 후 2회차 입실이면 in2/seat2 사용
-  const isSession2 = !!(myTodayRec?.out && !myTodayRec?.in2);
-  const inKey   = isSession2 ? 'in2'   : 'in';
-  const seatKey = isSession2 ? 'seat2' : 'seat';
+  const btn = document.getElementById('btn-seat-yes');
+  const errEl = document.getElementById('seat-confirm-err');
+  btn.disabled = true;
+  errEl.textContent = '';
   try {
+    if (!cfg.skipGps) {
+      const ok = await verifyGPSNow();
+      if (!ok) { errEl.textContent = '학교 위치가 확인되지 않습니다. GPS를 확인해주세요.'; return; }
+    }
+    const dk = fmtDateKey(new Date());
+    const [g,c,n] = sid.split('-').map(Number);
+    const student = students.find(s => s.학년===g && s.반===c && s.번호===n);
+    const name = student?.이름 || '';
+    const isSession2 = !!(myTodayRec?.out && !myTodayRec?.in2);
+    const inKey   = isSession2 ? 'in2'   : 'in';
+    const seatKey = isSession2 ? 'seat2' : 'seat';
     const inRef = ref(db, `yaja/attendance/${dk}/${sid}/${inKey}`);
     await set(inRef, serverTimestamp());
     await set(ref(db, `yaja/attendance/${dk}/${sid}/${seatKey}`), pendingSeatId);
@@ -1045,7 +1227,34 @@ async function confirmSeatYes() {
     closeSeatModal();
     showMyChips(g,c,n); syncButtons();
     showToast('✅', '입실 완료!', `${name} · ${fmtTime(snap.val())}`);
-  } catch(e) { alert('저장 실패: ' + e.message); }
+  } catch(e) {
+    errEl.textContent = '저장 실패 — 네트워크를 확인해주세요.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===== 범용 Confirm 모달 =====
+let _confirmResolve = null;
+function showConfirm(title, sub = '') {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById('generic-confirm-title').textContent = title;
+    const subEl = document.getElementById('generic-confirm-sub');
+    subEl.textContent = sub;
+    subEl.style.display = sub ? '' : 'none';
+    document.getElementById('generic-confirm').style.display = 'flex';
+    _pushModal();
+    document.getElementById('generic-confirm-yes').onclick = () => _closeGenericConfirm(true);
+    document.getElementById('generic-confirm-no').onclick  = () => _closeGenericConfirm(false);
+  });
+}
+function _closeGenericConfirm(result, fromBack) {
+  const el = document.getElementById('generic-confirm');
+  if (el.style.display === 'none') return;
+  el.style.display = 'none';
+  if (!fromBack) _pullModal();
+  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
 }
 
 // ===== Toast 애니메이션 =====
@@ -1055,7 +1264,7 @@ function showToast(icon, title, sub) {
   const el = document.createElement('div');
   el.id = 'toast-overlay';
   el.className = 'toast-overlay';
-  el.innerHTML = `<div class="toast-box"><div class="toast-icon">${icon}</div><div class="toast-title">${title}</div><div class="toast-sub">${sub}</div></div>`;
+  el.innerHTML = `<div class="toast-box"><div class="toast-icon">${icon}</div><div class="toast-title">${escapeHtml(title)}</div><div class="toast-sub">${escapeHtml(sub)}</div></div>`;
   document.getElementById('app-frame').appendChild(el);
   setTimeout(() => {
     el.querySelector('.toast-box').classList.add('out');
@@ -1066,19 +1275,20 @@ function showToast(icon, title, sub) {
 // ===== 입실 / 퇴실 =====
 async function doCheckIn() {
   const sid = getSid(); if (!sid) return;
-  if (!cfg.skipGps && !isStudyTime()) { alert('야자 시간(17:20~20:40)에만 입실할 수 있습니다.'); return; }
+  if (!cfg.skipTime && !isStudyTime()) { showToast('⏰', '입실 불가', '야자 시간(17:20~20:40)에만 입실할 수 있습니다.'); return; }
   await loadSeats();
   openSeatModal();
 }
 async function doCheckOut() {
   const sid = getSid(); if (!sid) return;
-  if (!cfg.skipGps && !isStudyTime()) { alert('야자 시간(17:20~20:40)에만 퇴실할 수 있습니다.'); return; }
+  if (!cfg.skipTime && !isStudyTime()) { showToast('⏰', '퇴실 불가', '야자 시간(17:20~20:40)에만 퇴실할 수 있습니다.'); return; }
   const rec = myTodayRec;
-  // 2회차 재실 중이면 out2, 아니면 out
   const isSession2 = !!(rec?.in2 && !rec?.out2);
   const outKey  = isSession2 ? 'out2'  : 'out';
   const seatKey = isSession2 ? 'seat2' : 'seat';
   if (!rec?.in) return;
+  const btn = document.getElementById('btn-out');
+  btn.disabled = true;
   const dk = fmtDateKey(new Date());
   try {
     const outRef = ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`);
@@ -1091,10 +1301,11 @@ async function doCheckOut() {
     const snap = await get(outRef);
     myTodayRec = { ...rec, [outKey]: snap.val() };
     const [g,c,n] = sid.split('-').map(Number);
-    showMyChips(g,c,n); syncButtons();
+    showMyChips(g,c,n);
     const name = students.find(s=>`${s.학년}-${s.반}-${s.번호}`===sid)?.이름 ?? '';
     showToast('👋', '퇴실 완료!', `${name} · ${fmtTime(snap.val())}`);
-  } catch(e){ alert('저장 실패: ' + e.message); }
+  } catch(e){ showToast('❌', '퇴실 실패', '네트워크를 확인해주세요.'); }
+  finally { syncButtons(); }
 }
 
 // ===== 내 기록 칩 =====
@@ -1201,7 +1412,7 @@ function renderTable() {
   });
   updateStats(list.length, inN, outN, list.length-inN-outN);
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
   let curPage = 1;
 
   function renderPage(page) {
@@ -1221,10 +1432,10 @@ function renderTable() {
           const t = new Date(p.ts);
           const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
           const pen = p.min > 0 ? ` −${p.min}분` : '';
-          return `<span style="color:var(--red-d)">${p.note}${pen}</span> <span style="color:var(--hint)">${ts}</span>`;
+          return `<span style="color:var(--red-d)">${escapeHtml(p.note)}${pen}</span> <span style="color:var(--hint)">${ts}</span>`;
         }).join('<br>');
       }
-      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline" onclick="openSrecModal('${sid}')">${s.이름}</td><td>${badge}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
+      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline" onclick="openSrecModal('${sid}')">${escapeHtml(s.이름)}</td><td>${badge}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
     }).join('');
     renderPagination();
   }
@@ -1251,6 +1462,7 @@ function renderTable() {
 
 // ===== 학생 기록 팝업 =====
 function openSrecModal(sid) {
+  _pushModal();
   const s = students.find(st=>`${st.학년}-${st.반}-${st.번호}`===sid);
   if (!s) return;
   const rec = _lastDayRec[sid];
@@ -1291,7 +1503,7 @@ function openSrecModal(sid) {
       const t = new Date(p.ts);
       const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
       const pen = p.min > 0 ? ` (−${p.min}분)` : '';
-      html += `<div class="srec-row"><span class="srec-label">${ts}</span><span class="srec-val" style="color:var(--red-d)">${p.note}${pen}</span></div>`;
+      html += `<div class="srec-row"><span class="srec-label">${ts}</span><span class="srec-val" style="color:var(--red-d)">${escapeHtml(p.note)}${pen}</span></div>`;
     });
   }
 
@@ -1300,8 +1512,9 @@ function openSrecModal(sid) {
   document.getElementById('srec-body').innerHTML = html;
   document.getElementById('srec-overlay').classList.add('show');
 }
-function closeSrecModal() {
+function closeSrecModal(fromBack) {
   document.getElementById('srec-overlay').classList.remove('show');
+  if (!fromBack) _pullModal();
 }
 function updateStats(tot,inN,outN,abs) {
   document.getElementById('s-total').textContent=tot;
@@ -1311,15 +1524,76 @@ function updateStats(tot,inN,outN,abs) {
 }
 
 function loadCfgUI() {
-  const sk = document.getElementById('skip-gps');
-  if (sk) sk.checked = !!cfg.skipGps;
+  const skGps  = document.getElementById('skip-gps');
+  const skTime = document.getElementById('skip-time');
+  if (skGps)  skGps.checked  = !!cfg.skipGps;
+  if (skTime) skTime.checked = !!cfg.skipTime;
 }
 async function persistCfg() {
-  try { await set(ref(db, 'yaja/cfg'), cfg); } catch(e){ console.warn(e); }
+  const msgEl = document.getElementById('cfg-save-msg');
+  try {
+    await set(ref(db, 'yaja/cfg'), cfg);
+    if (msgEl) { msgEl.textContent = '저장됨'; msgEl.style.color = 'var(--green-d)'; }
+  } catch(e) {
+    console.warn(e);
+    if (msgEl) { msgEl.textContent = '저장 실패 — 권한을 확인하세요'; msgEl.style.color = 'var(--red-d)'; }
+  }
+  if (msgEl) setTimeout(() => { msgEl.textContent = ''; }, 2500);
 }
-function toggleSkipGPS() {
+async function toggleSkipGPS() {
   cfg.skipGps = document.getElementById('skip-gps').checked;
-  persistCfg(); startGPS();
+  await persistCfg(); startGPS();
+}
+async function toggleSkipTime() {
+  cfg.skipTime = document.getElementById('skip-time').checked;
+  await persistCfg(); syncButtons(); updateTimeBar();
+}
+
+// ===== 개발자: 학생 기록 삭제 =====
+function devFillClass() {
+  const g = document.getElementById('del-grade').value;
+  const cl = document.getElementById('del-class');
+  const nm = document.getElementById('del-num');
+  cl.innerHTML = '<option value="">선택</option>';
+  nm.innerHTML = '<option value="">선택</option>';
+  document.getElementById('del-name-preview').textContent = '';
+  if (!g) return;
+  const classes = [...new Set(students.filter(s=>s.학년==g).map(s=>s.반))].sort((a,b)=>a-b);
+  classes.forEach(c => cl.innerHTML += `<option>${c}</option>`);
+}
+function devFillNum() {
+  const g = document.getElementById('del-grade').value;
+  const c = document.getElementById('del-class').value;
+  const nm = document.getElementById('del-num');
+  nm.innerHTML = '<option value="">선택</option>';
+  document.getElementById('del-name-preview').textContent = '';
+  if (!g || !c) return;
+  const nums = students.filter(s=>s.학년==g && s.반==c).sort((a,b)=>a.번호-b.번호);
+  nums.forEach(s => {
+    nm.innerHTML += `<option value="${s.번호}">${String(s.번호).padStart(2,'0')}번 · ${escapeHtml(s.이름)}</option>`;
+  });
+  nm.onchange = () => {
+    const n = nm.value;
+    const found = students.find(s=>s.학년==g && s.반==c && s.번호==n);
+    document.getElementById('del-name-preview').textContent = found ? `${g}학년 ${c}반 ${found.이름}` : '';
+  };
+}
+async function deleteStudentRecord() {
+  const g = document.getElementById('del-grade').value;
+  const c = document.getElementById('del-class').value;
+  const n = document.getElementById('del-num').value;
+  const msg = document.getElementById('del-msg');
+  if (!g || !c || !n) { msg.textContent = '학년·반·번호를 모두 선택하세요.'; msg.style.color='var(--red-d)'; return; }
+  const s = students.find(st=>st.학년==g && st.반==c && st.번호==n);
+  if (!s) { msg.textContent = '학생을 찾을 수 없습니다.'; msg.style.color='var(--red-d)'; return; }
+  if (!await showConfirm(`${escapeHtml(g)}학년 ${escapeHtml(c)}반 ${escapeHtml(s.이름)} 오늘 기록 삭제`, '삭제 후 복구할 수 없습니다.')) return;
+  const sid = `${g}-${c}-${n}`;
+  const dk = fmtDateKey(new Date());
+  try {
+    await set(ref(db, `yaja/attendance/${dk}/${sid}`), null);
+    msg.textContent = `${s.이름} 기록 삭제 완료`; msg.style.color='var(--green-d)';
+    renderTable();
+  } catch(e) { msg.textContent = '삭제 실패: ' + e.message; msg.style.color='var(--red-d)'; }
 }
 
 // ===== GitHub CSV 관리 =====
@@ -1330,25 +1604,13 @@ function setXlMsg(txt, color) {
   el.style.color = color || 'var(--muted)';
 }
 
-function showPreview(list) {
-  const tbody = document.getElementById('preview-body');
-  if (!tbody) return;
-  const slice = list.slice(0, 50);
-  tbody.innerHTML = slice.map(s =>
-    `<tr><td style="padding:5px 10px">${s.학년}</td><td style="padding:5px 10px">${s.반}</td><td style="padding:5px 10px">${s.번호}</td><td style="padding:5px 10px;font-weight:600">${s.이름}</td></tr>`
-  ).join('');
-  if (list.length > 50)
-    tbody.innerHTML += `<tr><td colspan="4" style="padding:7px 10px;text-align:center;color:var(--hint);font-size:11px">... 외 ${list.length-50}명</td></tr>`;
-  document.getElementById('preview-wrap').style.display = 'block';
-}
 
 async function reloadCsv() {
   setXlMsg('학생 명단 불러오는 중...', '#BA7517');
-  const ok = await loadStudentsFromCsv();
+  const ok = await loadStudentsFromCsv(true);
   if (ok) {
     buildGradeSelects(); buildFilterGrade();
     if (teacherUnlocked) attachTeacherListener();
-    showPreview(students);
     setXlMsg(`${students.length}명 불러오기 완료`, 'var(--green-d)');
     updateStudentCount();
   } else {
@@ -1358,10 +1620,6 @@ async function reloadCsv() {
 
 // ===== 출석 초기화 2단계 암호 모달 =====
 let _resetStep = 1;
-function _verifyReset(pw) {
-  // "gkehddurh16" reversed → "61hruddhekg"
-  return pw.split('').reverse().join('') === '61hruddhekg';
-}
 // ===== 교사 좌석 현황 =====
 async function openTeacherSeatView() {
   const dk = fmtDateKey(viewDate);
@@ -1414,9 +1672,11 @@ async function openTeacherSeatView() {
   `;
 
   document.getElementById('t-seat-modal').classList.add('show');
+  _pushModal();
 }
-function closeTeacherSeatView() {
+function closeTeacherSeatView(fromBack) {
   document.getElementById('t-seat-modal').classList.remove('show');
+  if (!fromBack) _pullModal();
 }
 
 // ===== 교사 좌석 클릭 → 학생 액션 패널 =====
@@ -1441,16 +1701,22 @@ function teacherSeatClick(seatId) {
   }
   document.getElementById('t-action-status').textContent = lines.join(' · ') || '상태 정보 없음';
   document.getElementById('t-seat-action-overlay').style.display = 'flex';
+  _pushModal();
 }
-function closeTeacherSeatAction() {
+function closeTeacherSeatAction(fromBack) {
   document.getElementById('t-seat-action-overlay').style.display = 'none';
   tSeatActionData = null;
+  if (!fromBack) _pullModal();
 }
 
 async function teacherCheckOut() {
   if (!tSeatActionData) return;
   const { seatId, sid, name, rec } = tSeatActionData;
-  if (!confirm(`${name} 학생을 퇴실 처리하겠습니까?`)) return;
+  if (!await showConfirm(`${escapeHtml(name)} 학생을 퇴실 처리하겠습니까?`)) return;
+  const btn = document.getElementById('btn-teacher-checkout');
+  const errEl = document.getElementById('t-action-err');
+  btn.disabled = true;
+  errEl.textContent = '';
   const dk = fmtDateKey(viewDate);
   const isSession2 = !!(rec?.in2 && !rec?.out2);
   const outKey = isSession2 ? 'out2' : 'out';
@@ -1459,7 +1725,11 @@ async function teacherCheckOut() {
     await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
     delete _tSeatSnap[seatId];
     closeTeacherSeatAction();
-  } catch(e) { alert('처리 실패: ' + e.message); }
+  } catch(e) {
+    errEl.textContent = '처리 실패 — 네트워크를 확인해주세요.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function openForceOutModal() {
@@ -1470,36 +1740,43 @@ function openForceOutModal() {
   document.getElementById('t-force-note').value = '';
   document.getElementById('t-force-overlay').style.display = 'flex';
   setTimeout(() => document.getElementById('t-force-note').focus(), 100);
+  _pushModal();
 }
-function closeForceOutModal() {
+function closeForceOutModal(fromBack) {
   document.getElementById('t-force-overlay').style.display = 'none';
+  if (!fromBack) _pullModal();
 }
 
 async function confirmForceOut() {
   if (!tSeatActionData) return;
   const { seatId, sid, name, rec } = tSeatActionData;
+  const btn = document.getElementById('btn-force-confirm');
+  const errEl = document.getElementById('t-force-err');
+  btn.disabled = true;
+  errEl.textContent = '';
   const dk = fmtDateKey(viewDate);
   const penaltyMin = Math.max(0, parseInt(document.getElementById('t-force-penalty').value) || 0);
   const noteRaw = document.getElementById('t-force-note').value.trim() || '사유 미기재';
   const isSession2 = !!(rec?.in2 && !rec?.out2);
   const outKey = isSession2 ? 'out2' : 'out';
   try {
-    // 강제 퇴실
     await set(ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`), serverTimestamp());
-    // 좌석 해제
     await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
     delete _tSeatSnap[seatId];
-    // 패널티 + 비고 기록
     const penSnap = await get(ref(db, `yaja/attendance/${dk}/${sid}/penalties`));
     const existing = penSnap.exists() ? penSnap.val() : [];
     existing.push({ ts: Date.now(), min: penaltyMin, note: `자리이탈: ${noteRaw}` });
     await set(ref(db, `yaja/attendance/${dk}/${sid}/penalties`), existing);
     closeForceOutModal();
     closeTeacherSeatAction();
-  } catch(e) { alert('처리 실패: ' + e.message); }
+  } catch(e) {
+    errEl.textContent = '처리 실패 — 네트워크를 확인해주세요.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
-function openResetModal() {
+function openResetModal() { _pushModal();
   _resetStep = 1;
   document.getElementById('reset-step-badge').textContent = '1단계 / 2';
   document.getElementById('reset-step-desc').innerHTML = '1차 암호를 입력하세요.<br>잘못 입력하면 취소됩니다.';
@@ -1508,8 +1785,9 @@ function openResetModal() {
   document.getElementById('reset-overlay').classList.add('show');
   setTimeout(()=>document.getElementById('reset-pw-input').focus(), 100);
 }
-function closeResetModal() {
+function closeResetModal(fromBack) {
   document.getElementById('reset-overlay').classList.remove('show');
+  if (!fromBack) _pullModal();
   document.getElementById('reset-pw-input').value = '';
   document.getElementById('reset-pw-err').textContent = '';
   _resetStep = 1;
@@ -1518,13 +1796,20 @@ function toggleResetPW() {
   const inp = document.getElementById('reset-pw-input');
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
-function confirmResetPW() {
-  const val = document.getElementById('reset-pw-input').value;
+async function confirmResetPW() {
+  const val = document.getElementById('reset-pw-input').value.trim();
   const err = document.getElementById('reset-pw-err');
-  if (!_verifyReset(val)) {
+  const btn = document.querySelector('.reset-confirm-btn');
+  if (!val) return;
+  btn.disabled = true;
+  try {
+    await setPersistence(auth, browserSessionPersistence);
+    await signInWithEmailAndPassword(auth, RESET_EMAIL, val);
+  } catch(e) {
     err.textContent = '암호가 올바르지 않습니다. 초기화가 취소됩니다.';
     document.getElementById('reset-pw-input').value = '';
-    setTimeout(()=>closeResetModal(), 1800);
+    setTimeout(() => closeResetModal(), 1800);
+    btn.disabled = false;
     return;
   }
   if (_resetStep === 1) {
@@ -1534,11 +1819,14 @@ function confirmResetPW() {
     document.getElementById('reset-pw-input').value = '';
     err.textContent = '';
     document.getElementById('reset-pw-input').focus();
+    btn.disabled = false;
     return;
   }
-  // 2단계 통과 → 실제 삭제
+  // 2단계 통과 → 실제 삭제 후 익명으로 복귀
   closeResetModal();
-  clearAll();
+  await clearAll();
+  try { await signOut(auth); await signInAnonymously(auth); } catch(e) { console.warn(e); }
+  btn.disabled = false;
 }
 async function clearAll() {
   try { await set(ref(db, 'yaja/attendance'), null); } catch(e){ console.warn(e); }
@@ -1656,18 +1944,8 @@ function switchTab(t) {
   });
 }
 
-// ===== 교사 탭 비밀번호 =====
-// 비밀번호는 해시로만 비교 — 평문 노출 없음
-const PW_HASH = '7f4e2a9c1b83d6f05e2c9814a73b5d6e8f2c4a7b9d1e3f5a8c2b4d6e7f9a1c3'; // gkehddurh SHA-256 대역
+// ===== 교사 탭 비밀번호 (Firebase Authentication) =====
 let teacherUnlocked = false;
-
-// 단순 해시 대신: 런타임에서만 비교하는 방식 (소스에 평문 노출 방지)
-function _verify(pw) {
-  // 역방향으로 저장: 입력값을 뒤집어서 비교 + XOR 난독화
-  const target = 'hruddhekg'; // gkehddurh reversed (정확)
-  const rev = pw.split('').reverse().join('');
-  return rev === target;
-}
 
 function tryTeacherTab() {
   if (teacherUnlocked) {
@@ -1680,19 +1958,29 @@ function tryTeacherTab() {
   setTimeout(()=>document.getElementById('pw-input').focus(), 100);
 }
 
-function checkPW() {
-  const val = document.getElementById('pw-input').value;
+async function checkPW() {
+  const val = document.getElementById('pw-input').value.trim();
   const err = document.getElementById('pw-err');
-  if (_verify(val)) {
+  const btn = document.querySelector('.pw-enter');
+  if (!val) return;
+  btn.disabled = true;
+  btn.textContent = '확인 중...';
+  try {
+    // 탭/창을 닫으면 세션 만료 (localStorage 저장 안 함)
+    await setPersistence(auth, browserSessionPersistence);
+    await signInWithEmailAndPassword(auth, TEACHER_EMAIL, val);
     teacherUnlocked = true;
     document.getElementById('pw-input').value = '';
     err.textContent = '';
     showTeacherContent();
-  } else {
+  } catch(e) {
     err.textContent = '비밀번호가 올바르지 않습니다.';
     document.getElementById('pw-input').value = '';
     document.getElementById('pw-input').focus();
     setTimeout(()=>{ err.textContent=''; }, 2500);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '확인';
   }
 }
 
@@ -1703,10 +1991,11 @@ function showTeacherContent() {
   buildFilterGrade();
   loadCfgUI();
   updateStudentCount();
-  attachTeacherListener(); // Firebase 실시간 리스너 시작
+  renderTable();          // 즉시 렌더 (Firebase 응답 전에도 학생 목록 표시)
+  attachTeacherListener(); // Firebase 실시간 리스너 시작 → 출석 데이터 오면 다시 렌더
 }
 
-function lockTeacher() {
+async function lockTeacher() {
   teacherUnlocked = false;
   if (unsubTeacher) { unsubTeacher(); unsubTeacher=null; }
   document.getElementById('teacher-content').classList.remove('unlocked');
@@ -1714,6 +2003,11 @@ function lockTeacher() {
   switchTab('student');
   document.querySelectorAll('.tab-btn')[0].classList.add('active');
   document.querySelectorAll('.tab-btn')[1].classList.remove('active');
+  // 교사 세션 종료 후 학생 모드(익명)로 복귀
+  try {
+    await signOut(auth);
+    await signInAnonymously(auth);
+  } catch(e) { console.warn('lockTeacher 재인증 실패:', e); }
 }
 
 function togglePW() {
@@ -1722,14 +2016,15 @@ function togglePW() {
 }
 
 // ===== 개발자 설정 잠금 =====
-function openDevPwModal() {
+function openDevPwModal() { _pushModal();
   document.getElementById('dev-pw-input').value = '';
   document.getElementById('dev-pw-err').textContent = '';
   document.getElementById('dev-pw-overlay').classList.add('show');
   setTimeout(() => document.getElementById('dev-pw-input').focus(), 100);
 }
-function closeDevPwModal() {
+function closeDevPwModal(fromBack) {
   document.getElementById('dev-pw-overlay').classList.remove('show');
+  if (!fromBack) _pullModal();
   document.getElementById('dev-pw-input').value = '';
   document.getElementById('dev-pw-err').textContent = '';
 }
@@ -1737,17 +2032,26 @@ function toggleDevPW() {
   const inp = document.getElementById('dev-pw-input');
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
-function confirmDevPW() {
-  const val = document.getElementById('dev-pw-input').value;
+async function confirmDevPW() {
+  const val = document.getElementById('dev-pw-input').value.trim();
   const err = document.getElementById('dev-pw-err');
-  if (_verifyReset(val)) {
+  const btn = document.querySelector('.dev-pw-box .pw-enter');
+  if (!val) return;
+  btn.disabled = true;
+  btn.textContent = '확인 중...';
+  try {
+    await setPersistence(auth, browserSessionPersistence);
+    await signInWithEmailAndPassword(auth, DEV_EMAIL, val);
     closeDevPwModal();
     document.getElementById('dev-container').classList.add('show');
-  } else {
+  } catch(e) {
     err.textContent = '비밀번호가 올바르지 않습니다.';
     document.getElementById('dev-pw-input').value = '';
     document.getElementById('dev-pw-input').focus();
     setTimeout(() => { err.textContent = ''; }, 2000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '확인';
   }
 }
 function lockDevContainer() {
@@ -1764,6 +2068,42 @@ function showMsg(id, txt) {
 
 // ===== 시작 =====
 init();
+
+// ===== PWA 서비스워커 등록 =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./check-sw.js').catch(() => {});
+}
+
+// ===== PWA 홈 화면 추가 배너 =====
+let _deferredPrompt = null;
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+
+if (!isInStandalone) {
+  if (isIos) {
+    // iOS: 안내 배너 표시
+    const b = document.getElementById('pwa-banner');
+    b.style.display = 'flex';
+    document.getElementById('pwa-install-btn').onclick = () => {
+      document.getElementById('ios-guide-overlay').classList.add('show');
+    };
+  } else {
+    // Android/Chrome: beforeinstallprompt 이벤트 캡처
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      document.getElementById('pwa-banner').style.display = 'flex';
+      document.getElementById('pwa-install-btn').onclick = async () => {
+        _deferredPrompt.prompt();
+        const { outcome } = await _deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('pwa-banner').style.display = 'none';
+        }
+        _deferredPrompt = null;
+      };
+    });
+  }
+}
 window.addEventListener('resize', () => {
   if (document.getElementById('seat-modal').style.display !== 'none') scaleSeatRoom();
 });
@@ -1776,15 +2116,57 @@ Object.assign(window, {
   openDevPwModal, closeDevPwModal, toggleDevPW, confirmDevPW, lockDevContainer,
   switchTab, renderTable,
   moveDate, goToday, onFilterChange,
-  toggleSkipGPS, persistCfg,
+  toggleSkipGPS, toggleSkipTime, persistCfg,
   reloadCsv, clearAll, downloadRange,
   openResetModal, closeResetModal, confirmResetPW, toggleResetPW,
   openTeacherSeatView, closeTeacherSeatView,
   teacherSeatClick, closeTeacherSeatAction, teacherCheckOut,
   openForceOutModal, closeForceOutModal, confirmForceOut,
   selectSeat, confirmSeatYes, confirmSeatNo, closeSeatModal,
-  openSrecModal, closeSrecModal
+  openSrecModal, closeSrecModal, _closeGenericConfirm,
+  devFillClass, devFillNum, deleteStudentRecord
 });
+
+/* ── 뒤로가기로 모달 닫기 ── */
+(function(){
+  let _skip = false;
+
+  function pushModal() {
+    history.pushState({ modal: true }, '');
+  }
+  function pullModal() {
+    // 수동 닫기 → history.back() 호출, popstate는 무시
+    if (history.state?.modal) { _skip = true; history.back(); }
+  }
+  function closeTopModal() {
+    const sel = [
+      { id: 'srec-overlay',          cls: 'show', fn: () => closeSrecModal(true)   },
+      { id: 'generic-confirm',      css: 'flex', fn: () => _closeGenericConfirm(false, true) },
+      { id: 'seat-confirm',         css: 'flex', fn: () => { document.getElementById('seat-confirm').style.display='none'; } },
+      { id: 't-force-overlay',       css: 'flex', fn: () => closeForceOutModal(true) },
+      { id: 't-seat-action-overlay', css: 'flex', fn: () => closeTeacherSeatAction(true) },
+      { id: 'seat-modal',            css: 'flex', fn: () => closeSeatModal(true)   },
+      { id: 't-seat-modal',          cls: 'show', fn: () => closeTeacherSeatView(true) },
+      { id: 'reset-overlay',         cls: 'show', fn: () => closeResetModal(true)  },
+      { id: 'dev-pw-overlay',        cls: 'show', fn: () => closeDevPwModal(true)  },
+    ];
+    for (const m of sel) {
+      const el = document.getElementById(m.id);
+      if (!el) continue;
+      const visible = m.cls ? el.classList.contains(m.cls) : el.style.display === m.css;
+      if (visible) { m.fn(); return; }
+    }
+  }
+
+  window.addEventListener('popstate', () => {
+    if (_skip) { _skip = false; return; }
+    closeTopModal();
+  });
+
+  // 전역 노출
+  window._pushModal = pushModal;
+  window._pullModal = pullModal;
+})();
 
 /* ── Slider ── */
 (function(){
@@ -1956,9 +2338,10 @@ Object.assign(window, {
     <div class="t-action-info" id="t-action-student-info"></div>
     <div class="t-action-status" id="t-action-status"></div>
     <div class="t-action-btns">
-      <button type="button" class="t-action-btn t-action-out" onclick="teacherCheckOut()">퇴실 처리</button>
+      <button type="button" class="t-action-btn t-action-out" id="btn-teacher-checkout" onclick="teacherCheckOut()">퇴실 처리</button>
       <button type="button" class="t-action-btn t-action-force" onclick="openForceOutModal()">자리이탈</button>
     </div>
+    <div id="t-action-err" class="modal-err"></div>
   </div>
 </div>
 
@@ -1975,9 +2358,10 @@ Object.assign(window, {
       <label>비고 (사유)</label>
       <input type="text" id="t-force-note" class="t-force-input" placeholder="예: 복도에서 배회, 휴대폰 사용">
     </div>
+    <div id="t-force-err" class="modal-err"></div>
     <div class="reset-btn-row t-force-btn-row">
       <button type="button" class="reset-cancel-btn" onclick="closeForceOutModal()">취소</button>
-      <button type="button" class="reset-confirm-btn" onclick="confirmForceOut()">처리 확인</button>
+      <button type="button" class="reset-confirm-btn" id="btn-force-confirm" onclick="confirmForceOut()">처리 확인</button>
     </div>
   </div>
 </div>
@@ -1987,9 +2371,31 @@ Object.assign(window, {
   <div class="seat-confirm-box">
     <div class="seat-confirm-title">해당 자리에 착석하겠습니까?</div>
     <div class="seat-confirm-sub" id="seat-confirm-sub"></div>
+    <div id="seat-confirm-err" class="modal-err"></div>
     <div class="seat-confirm-btns">
       <button type="button" class="btn-confirm-no"  onclick="confirmSeatNo()">아니오</button>
-      <button type="button" class="btn-confirm-yes" onclick="confirmSeatYes()">예</button>
+      <button type="button" class="btn-confirm-yes" id="btn-seat-yes" onclick="confirmSeatYes()">예</button>
+    </div>
+  </div>
+</div>
+
+<!-- GPS 로딩 팝업 -->
+<div class="gps-loading-overlay" id="gps-loading-overlay">
+  <div class="gps-loading-box">
+    <div class="gps-loading-spinner"></div>
+    <div class="gps-loading-text">위치를 확인중입니다.</div>
+    <div class="gps-loading-sub">잠시만 기다려주세요</div>
+  </div>
+</div>
+
+<!-- 범용 확인 모달 -->
+<div class="seat-confirm" id="generic-confirm">
+  <div class="seat-confirm-box">
+    <div class="seat-confirm-title" id="generic-confirm-title"></div>
+    <div class="seat-confirm-sub" id="generic-confirm-sub"></div>
+    <div class="seat-confirm-btns">
+      <button type="button" class="btn-confirm-no"  id="generic-confirm-no">취소</button>
+      <button type="button" class="btn-confirm-yes" id="generic-confirm-yes">확인</button>
     </div>
   </div>
 </div>
@@ -2007,6 +2413,28 @@ Object.assign(window, {
   <div id="time-bar" class="gps checking">
     <div class="gps-dot"></div>
     <span id="time-txt">야자 시간 확인 중...</span>
+  </div>
+</div>
+
+<!-- 홈 화면 추가 배너 -->
+<div id="pwa-banner">
+  <div class="pwa-banner-desc">
+    📲 앱으로 설치하기
+    <small>홈 화면에서 빠르게 실행</small>
+  </div>
+  <button type="button" id="pwa-install-btn">설치</button>
+</div>
+
+<!-- iOS 안내 모달 -->
+<div class="ios-guide-overlay" id="ios-guide-overlay">
+  <div class="ios-guide-box">
+    <div class="ios-guide-title">홈 화면에 추가하는 방법</div>
+    <div class="ios-guide-steps">
+      1. 화면 하단 가운데 <b>공유 버튼</b> <img src="./share.png" class="ios-guide-icon" alt="공유"> 누르기<br>
+      2. 스크롤 내려서 <b>"홈 화면에 추가"</b> <img src="./more.png" class="ios-guide-icon" alt="추가"> 누르기<br>
+      3. 오른쪽 위 <b>"추가"</b> 누르기
+    </div>
+    <button type="button" class="ios-guide-close" onclick="document.getElementById('ios-guide-overlay').classList.remove('show')">확인</button>
   </div>
 </div>
 
