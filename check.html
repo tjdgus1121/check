@@ -23,6 +23,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   body{background:#888;display:flex;justify-content:center;align-items:center;padding:24px 0;}
   #app-frame{max-width:430px;min-height:unset;height:min(930px,95dvh);overflow:hidden;border-radius:40px;box-shadow:0 0 40px rgba(0,0,0,.35);}
 }
+@media (min-width:768px){
+  #app-frame{max-width:700px;height:min(960px,95dvh);}
+}
 
 /* ── Header ── */
 .hdr{background:var(--text);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
@@ -165,7 +168,15 @@ tr:hover td{background:#FAFAFA;}
 /* ── 교사 좌석 현황 모달 ── */
 .t-seat-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px;}
 .t-seat-modal.show{display:flex;}
-.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;overflow:auto;width:fit-content;}
+.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;max-width:calc(100vw - 24px);overflow:auto;width:fit-content;}
+@media (orientation:portrait){
+  .t-seat-modal{padding:8px;}
+  .t-seat-box{max-height:90vh;overflow:auto;}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .t-seat-modal{padding:0;}
+  .t-seat-box{border-radius:0;max-height:100vh;}
+}
 .t-seat-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .t-seat-title{font-size:15px;font-weight:700;}
 .t-seat-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--hint);line-height:1;padding:2px 6px;}
@@ -307,11 +318,14 @@ tr:hover td{background:#FAFAFA;}
 .legend-free{color:var(--green);}
 .legend-occ{color:#F87171;}
 .legend-mine{color:var(--blue);}
-/* 세로 모드: 스케일 축소 */
-@media (orientation:portrait){
+/* 세로 모드: 패딩 최소화 + JS zoom 으로 전체 축소 */
+@media (orientation:portrait) and (max-width:499px){
   .seat-modal{padding:8px;}
-  .seat-modal-box{overflow:auto;max-height:90vh;}
+  .seat-modal-box{overflow:auto;max-height:90vh;padding:12px 8px;}
+  .t-seat-box{padding:12px 8px;}
 }
+/* room-wrap 전체를 vw 기반으로 zoom */
+.room-wrap{zoom:var(--seat-scale,1);}
 /* 가로 모드 (저사양): 풀스크린 */
 @media (orientation:landscape) and (max-height:500px){
   .seat-modal{padding:0;}
@@ -786,6 +800,22 @@ async function loadStudentsFromCsv(bustCache = false) {
     return students.length > 0; // 캐시라도 있으면 성공으로 처리
   }
 }
+
+// ===== 좌석 맵 zoom 스케일 (vw 기반) =====
+// room-wrap 자연 너비: 9×46px + 8×5px gap + 14+14px padding + 4px border = 490px
+function updateSeatScale() {
+  const portrait = window.innerHeight > window.innerWidth;
+  if (!portrait || window.innerWidth >= 500) {
+    document.documentElement.style.setProperty('--seat-scale', '1');
+    return;
+  }
+  // 사용 가능한 너비: vw - (모달 패딩 8×2) - (박스 패딩 8×2)
+  const available = window.innerWidth - 32;
+  const scale = Math.min(1, available / 490);
+  document.documentElement.style.setProperty('--seat-scale', scale.toFixed(4));
+}
+window.addEventListener('resize', updateSeatScale);
+updateSeatScale();
 
 // ===== 초기화 =====
 async function init() {
@@ -1903,7 +1933,8 @@ function showTeacherContent() {
   buildFilterGrade();
   loadCfgUI();
   updateStudentCount();
-  attachTeacherListener(); // Firebase 실시간 리스너 시작
+  renderTable();          // 즉시 렌더 (Firebase 응답 전에도 학생 목록 표시)
+  attachTeacherListener(); // Firebase 실시간 리스너 시작 → 출석 데이터 오면 다시 렌더
 }
 
 async function lockTeacher() {
