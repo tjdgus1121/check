@@ -383,6 +383,14 @@ tr:hover td{background:#FAFAFA;}
 .dev-gps-cb{width:16px;height:16px;}
 .dev-cancel-btn{margin-top:10px;width:100%;}
 .modal-err{font-size:12px;color:var(--red-d);min-height:16px;margin-top:8px;text-align:center;word-break:keep-all;}
+
+/* ── GPS 로딩 팝업 ── */
+.gps-loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;display:none;align-items:center;justify-content:center;}
+.gps-loading-box{background:#fff;border-radius:20px;padding:32px 40px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);min-width:220px;}
+.gps-loading-spinner{width:40px;height:40px;border:4px solid #E5E7EB;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gps-loading-text{font-size:15px;font-weight:700;color:var(--fg);margin-bottom:4px;}
+.gps-loading-sub{font-size:12px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -737,29 +745,45 @@ let unsubTeacher = null;
 // ===== 학생 명단 로드 (Cloudflare Worker 경유) =====
 const WORKER_URL = 'https://students.tjdgus1121.workers.dev/';
 
-async function loadStudentsFromCsv() {
+const STUDENTS_CACHE_KEY = 'yaja_students_cache';
+
+function parseCsv(text) {
+  const sep = text.includes('\t') ? '\t' : ',';
+  const rows = text.trim().split('\n').map(r =>
+    r.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
+  );
+  const first = rows[0];
+  const isHeader = isNaN(Number(first[0])) || isNaN(Number(first[1]));
+  const dataRows = isHeader ? rows.slice(1) : rows;
+  const parsed = [];
+  dataRows.forEach(row => {
+    const 학년=parseInt(row[0]), 반=parseInt(row[1]), 번호=parseInt(row[2]), 이름=(row[3]||'').trim();
+    if (!isNaN(학년) && !isNaN(반) && !isNaN(번호) && 이름) parsed.push({학년,반,번호,이름});
+  });
+  return parsed;
+}
+
+async function loadStudentsFromCsv(bustCache = false) {
+  // 1) localStorage 캐시 즉시 적용 (화면 빠르게 뜸)
   try {
-    const res = await fetch(WORKER_URL + '?t=' + Date.now());
+    const cached = localStorage.getItem(STUDENTS_CACHE_KEY);
+    if (cached) { students = JSON.parse(cached); buildGradeSelects(); buildFilterGrade(); }
+  } catch(e) {}
+
+  // 2) Worker에서 최신 데이터 fetch (bustCache=true면 강제 갱신)
+  try {
+    const url = bustCache ? WORKER_URL + '?t=' + Date.now() : WORKER_URL;
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
-    const sep = text.includes('\t') ? '\t' : ','; // 탭/쉼표 자동 감지
-    const rows = text.trim().split('\n').map(r =>
-      r.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
-    );
-    const first = rows[0];
-    const isHeader = isNaN(Number(first[0])) || isNaN(Number(first[1]));
-    const dataRows = isHeader ? rows.slice(1) : rows;
-    const parsed = [];
-    dataRows.forEach(row => {
-      const 학년=parseInt(row[0]), 반=parseInt(row[1]), 번호=parseInt(row[2]), 이름=(row[3]||'').trim();
-      if (!isNaN(학년) && !isNaN(반) && !isNaN(번호) && 이름) parsed.push({학년,반,번호,이름});
-    });
+    const parsed = parseCsv(text);
     if (parsed.length === 0) throw new Error('유효한 학생 데이터 없음');
     students = parsed;
+    localStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(parsed));
     return true;
   } catch(e) {
     console.warn('학생 명단 로드 실패:', e);
-    return false;
+    return students.length > 0; // 캐시라도 있으면 성공으로 처리
   }
 }
 
@@ -907,11 +931,13 @@ function startGPS() {
   gpsBar.style.display='';
   if (!navigator.geolocation) { setGPS('fail','GPS를 지원하지 않는 브라우저입니다'); setGpsWarn(true); return; }
   setGPS('checking','위치 확인 중...'); setGpsWarn(false);
+  document.getElementById('gps-loading-overlay').style.display = 'flex';
   navigator.geolocation.getCurrentPosition(async pos=>{
     const {latitude:la, longitude:lo} = pos.coords;
     const d = haversine(la, lo, SCHOOL_LAT, SCHOOL_LNG);
     const addr = await reverseGeocode(la, lo);
     const addrTxt = addr ? ` · ${addr}` : '';
+    document.getElementById('gps-loading-overlay').style.display = 'none';
     if (d <= SCHOOL_RADIUS) {
       setGPS('ok', `학교 내 확인 (${Math.round(d)}m 이내)${addrTxt}`);
       gpsOk = true; setGpsWarn(false);
@@ -921,6 +947,7 @@ function startGPS() {
     }
     syncButtons();
   }, err=>{
+    document.getElementById('gps-loading-overlay').style.display = 'none';
     const msgs = {1:'위치 권한이 거부됐습니다 — 브라우저 설정에서 위치를 허용해주세요',2:'GPS 신호를 찾을 수 없습니다',3:'GPS 응답 시간 초과'};
     setGPS('fail', msgs[err.code]||'GPS 오류');
     gpsOk = false; setGpsWarn(true); syncButtons();
@@ -1492,7 +1519,7 @@ function setXlMsg(txt, color) {
 
 async function reloadCsv() {
   setXlMsg('학생 명단 불러오는 중...', '#BA7517');
-  const ok = await loadStudentsFromCsv();
+  const ok = await loadStudentsFromCsv(true);
   if (ok) {
     buildGradeSelects(); buildFilterGrade();
     if (teacherUnlocked) attachTeacherListener();
@@ -2224,6 +2251,15 @@ Object.assign(window, {
       <button type="button" class="btn-confirm-no"  onclick="confirmSeatNo()">아니오</button>
       <button type="button" class="btn-confirm-yes" id="btn-seat-yes" onclick="confirmSeatYes()">예</button>
     </div>
+  </div>
+</div>
+
+<!-- GPS 로딩 팝업 -->
+<div class="gps-loading-overlay" id="gps-loading-overlay">
+  <div class="gps-loading-box">
+    <div class="gps-loading-spinner"></div>
+    <div class="gps-loading-text">위치를 확인중입니다.</div>
+    <div class="gps-loading-sub">잠시만 기다려주세요</div>
   </div>
 </div>
 
