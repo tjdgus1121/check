@@ -167,6 +167,7 @@ tr:hover td{background:#FAFAFA;}
 .field input:focus{outline:none;border-color:var(--text);}
 .btn-primary{padding:10px 18px;background:var(--text);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}
 .btn-secondary{padding:10px 18px;background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;margin-left:8px;}
+.btn-secondary.no-ml{margin-left:0;}
 .btn-danger{padding:10px 18px;background:var(--red-l);color:var(--red-d);border:1.5px solid #FECACA;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;margin-left:8px;}
 .msg{margin-top:8px;font-size:13px;min-height:18px;}
 .msg.ok{color:var(--green-d);}
@@ -282,10 +283,12 @@ tr:hover td{background:#FAFAFA;}
 .t-grid{display:flex;gap:3px;padding:8px 14px 6px;}
 .t-grid .seat{width:34px;height:28px;border-radius:5px;}
 .t-grid .seat .seat-id{font-size:8px;}
-/* 메인 그리드: L·C·R (행1-12, 열1-9) */
-.seat-grid{display:grid;grid-template-columns:repeat(9,46px);grid-template-rows:repeat(12,46px);gap:5px;padding:10px 14px 14px;}
-/* L열: 열2-3 / L1-L4=행3-4, L5-L8=행7-8 */
-[data-seat="L1"]{grid-column:2;grid-row:3;}[data-seat="L2"]{grid-column:3;grid-row:3;}[data-seat="L3"]{grid-column:2;grid-row:4;}[data-seat="L4"]{grid-column:3;grid-row:4;}[data-seat="L5"]{grid-column:2;grid-row:7;}[data-seat="L6"]{grid-column:3;grid-row:7;}[data-seat="L7"]{grid-column:2;grid-row:8;}[data-seat="L8"]{grid-column:3;grid-row:8;}
+/* 메인 그리드: L·C·R (행1-13, 열1-9) */
+.seat-grid{display:grid;grid-template-columns:repeat(9,46px);grid-template-rows:repeat(13,46px);gap:5px;padding:10px 14px 14px;}
+/* B열: B1=행11열3, B2=행11열5 */
+[data-seat="B1"]{grid-column:4;grid-row:11;}[data-seat="B2"]{grid-column:6;grid-row:11;}
+/* L열: 열2-3 / L1-L4=행2-3, L5-L8=행5-6, L9-L12=행8-9 */
+[data-seat="L1"]{grid-column:2;grid-row:2;}[data-seat="L2"]{grid-column:3;grid-row:2;}[data-seat="L3"]{grid-column:2;grid-row:3;}[data-seat="L4"]{grid-column:3;grid-row:3;}[data-seat="L5"]{grid-column:2;grid-row:5;}[data-seat="L6"]{grid-column:3;grid-row:5;}[data-seat="L7"]{grid-column:2;grid-row:6;}[data-seat="L8"]{grid-column:3;grid-row:6;}[data-seat="L9"]{grid-column:2;grid-row:8;}[data-seat="L10"]{grid-column:3;grid-row:8;}[data-seat="L11"]{grid-column:2;grid-row:9;}[data-seat="L12"]{grid-column:3;grid-row:9;}
 /* C1그룹: 열5-6, 행3-5 */
 [data-seat="C1"]{grid-column:5;grid-row:3;}[data-seat="C2"]{grid-column:6;grid-row:3;}[data-seat="C3"]{grid-column:5;grid-row:4;}[data-seat="C4"]{grid-column:6;grid-row:4;}[data-seat="C5"]{grid-column:5;grid-row:5;}[data-seat="C6"]{grid-column:6;grid-row:5;}
 /* C2그룹: 열5-6, 행7-9 */
@@ -302,12 +305,13 @@ tr:hover td{background:#FAFAFA;}
 .shelf-div{background:linear-gradient(90deg,#c8924e,#a06030);border-radius:3px;height:8px;align-self:center;}
 .shelf-div-1{grid-column:8/10;grid-row:4;}
 .shelf-div-2{grid-column:8/10;grid-row:8;}
-/* 장식 삼각형: (열1,행3-4) / (열1,행7-8) */
+/* 장식 삼각형: (열1,행2-3) / (열1,행5-6) / (열1,행8-9) */
 .tri-deco{background:#b8895a;clip-path:polygon(100% 0,0 50%,100% 100%);z-index:1;}
-.tri-cl{grid-column:1;grid-row:3/5;}
-.tri-cr{grid-column:1;grid-row:7/9;}
-/* 입구: 열1-3, 행12 */
-.room-entrance{grid-column:1/4;grid-row:12;background:#1A1A1A;color:#fff;font-size:11px;border-radius:4px;display:flex;align-items:center;justify-content:center;}
+.tri-cl{grid-column:1;grid-row:2/4;}
+.tri-cr{grid-column:1;grid-row:5/7;}
+.tri-c3{grid-column:1;grid-row:8/10;}
+/* 입구: 열1-3, 행13 */
+.room-entrance{grid-column:1/4;grid-row:13;background:#1A1A1A;color:#fff;font-size:11px;border-radius:4px;display:flex;align-items:center;justify-content:center;}
 .seat{width:46px;height:46px;border:2px solid var(--green);border-radius:7px;background:#D1FAE5;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.15s;padding:2px;-webkit-user-select:none;user-select:none;}
 .seat:hover:not(.occupied):not(.mine){background:#A7F3D0;border-color:var(--green-d);}
 .seat.occupied{background:#FEE2E2;border-color:#F87171;cursor:not-allowed;}
@@ -417,6 +421,9 @@ tr:hover td{background:#FAFAFA;}
 .dev-gps-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;}
 .dev-gps-label+.dev-gps-label{margin-top:10px;}
 .cfg-save-msg{margin-top:8px;font-size:12px;min-height:16px;}
+.dev-coord-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.dev-coord-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;}
+.btn-full{width:100%;}
 .dev-gps-cb{width:16px;height:16px;}
 .dev-cancel-btn{margin-top:10px;width:100%;}
 .modal-err{font-size:12px;color:var(--red-d);min-height:16px;margin-top:8px;text-align:center;word-break:keep-all;}
@@ -668,6 +675,39 @@ tr:hover td{background:#FAFAFA;}
             <div id="cfg-save-msg" class="cfg-save-msg"></div>
           </div>
 
+          <!-- 학교 GPS 좌표 설정 -->
+          <div class="card dev-card-gap">
+            <div class="card-title">학교 GPS 좌표 설정</div>
+            <div class="dev-coord-grid">
+              <div class="sel-wrap"><label>위도 (LAT)</label>
+                <input type="number" id="school-lat" class="dev-coord-input" step="0.000001" placeholder="35.062749">
+              </div>
+              <div class="sel-wrap"><label>경도 (LNG)</label>
+                <input type="number" id="school-lng" class="dev-coord-input" step="0.000001" placeholder="127.746998">
+              </div>
+            </div>
+            <button type="button" class="btn-primary btn-full" onclick="devSaveSchoolCoords()">학교 좌표 저장</button>
+            <div id="dev-school-msg" class="cfg-save-msg"></div>
+          </div>
+
+          <!-- 위도/경도 직접 설정 -->
+          <div class="card dev-card-gap">
+            <div class="card-title">GPS 좌표 직접 설정</div>
+            <div class="dev-coord-grid">
+              <div class="sel-wrap"><label>위도 (LAT)</label>
+                <input type="number" id="dev-lat" class="dev-coord-input" step="0.0001" placeholder="35.0672">
+              </div>
+              <div class="sel-wrap"><label>경도 (LNG)</label>
+                <input type="number" id="dev-lng" class="dev-coord-input" step="0.0001" placeholder="127.7505">
+              </div>
+            </div>
+            <div class="dev-coord-grid">
+              <button type="button" class="btn-primary" onclick="devApplyGPS()">저장 및 적용</button>
+              <button type="button" class="btn-secondary no-ml" onclick="devClearCustomGPS()">해제 (기기 GPS)</button>
+            </div>
+            <div id="dev-gps-msg" class="cfg-save-msg"></div>
+          </div>
+
           <div class="card card-danger dev-card-gap">
             <div class="card-title card-danger-title">⚠ 위험 구역</div>
             <p class="card-danger-desc">출석 데이터를 전체 삭제합니다. Firebase에 저장된 모든 기록이 영구 삭제되며 복구할 수 없습니다. 별도 암호 2회 확인 후 실행됩니다.</p>
@@ -744,7 +784,7 @@ const RESET_EMAIL = 'reset@yaja.school';
 
 // ===== 상태 =====
 let students = [];
-let cfg = { skipGps: false, skipTime: false };
+let cfg = { skipGps: false, skipTime: false, customLat: null, customLng: null, schoolLat: null, schoolLng: null };
 
 // ===== 쉬는시간(19:00~19:20) 제외 재실 ms 계산 =====
 function calcNetMs(from, to) {
@@ -772,8 +812,8 @@ function calcTotalDur(rec, nowMs) {
 // ===== 교사 좌석 액션 상태 =====
 let _tSeatSnap = {};
 let tSeatActionData = null;
-const SCHOOL_LAT = 35.0672;
-const SCHOOL_LNG = 127.7505;
+let SCHOOL_LAT = 35.062749;
+let SCHOOL_LNG = 127.746998;
 const SCHOOL_RADIUS = 100; // 미터 (실내 GPS 오차 감안)
 let gpsOk = false;
 let viewDate = new Date();
@@ -852,10 +892,12 @@ async function init() {
   // 익명 자동 로그인 (사용자 개입 없음)
   try { await signInAnonymously(auth); } catch(e) { console.warn('익명 로그인 실패:', e); }
 
-  // 설정 로드 (skipGps만)
+  // 설정 로드
   try {
     const snap = await get(ref(db, 'yaja/cfg'));
     if (snap.exists()) cfg = { ...cfg, ...snap.val() };
+    if (cfg.schoolLat != null) SCHOOL_LAT = cfg.schoolLat;
+    if (cfg.schoolLng != null) SCHOOL_LNG = cfg.schoolLng;
   } catch(e){}
 
   // student.csv 자동 로드
@@ -985,6 +1027,10 @@ async function reverseGeocode(lat, lng) {
 function startGPS() {
   const gpsBar = document.getElementById('gps-bar');
   if (cfg.skipGps) { gpsBar.style.display='none'; document.getElementById('gps-loading-overlay').style.display='none'; setGpsWarn(false); gpsOk=true; syncButtons(); return; }
+  if (cfg.customLat != null && cfg.customLng != null) {
+    gpsBar.style.display=''; document.getElementById('gps-loading-overlay').style.display='none';
+    applyGPSResult(cfg.customLat, cfg.customLng, false, null); return;
+  }
   gpsBar.style.display='';
   if (!navigator.geolocation) { setGPS('fail','GPS를 지원하지 않는 브라우저입니다'); setGpsWarn(true); return; }
   setGPS('checking','위치 확인 중...'); setGpsWarn(false);
@@ -1528,6 +1574,14 @@ function loadCfgUI() {
   const skTime = document.getElementById('skip-time');
   if (skGps)  skGps.checked  = !!cfg.skipGps;
   if (skTime) skTime.checked = !!cfg.skipTime;
+  const latEl = document.getElementById('dev-lat');
+  const lngEl = document.getElementById('dev-lng');
+  if (latEl && cfg.customLat != null) latEl.value = cfg.customLat;
+  if (lngEl && cfg.customLng != null) lngEl.value = cfg.customLng;
+  const sLatEl = document.getElementById('school-lat');
+  const sLngEl = document.getElementById('school-lng');
+  if (sLatEl) sLatEl.value = cfg.schoolLat ?? SCHOOL_LAT;
+  if (sLngEl) sLngEl.value = cfg.schoolLng ?? SCHOOL_LNG;
 }
 async function persistCfg() {
   const msgEl = document.getElementById('cfg-save-msg');
@@ -1547,6 +1601,39 @@ async function toggleSkipGPS() {
 async function toggleSkipTime() {
   cfg.skipTime = document.getElementById('skip-time').checked;
   await persistCfg(); syncButtons(); updateTimeBar();
+}
+async function devSaveSchoolCoords() {
+  const la = parseFloat(document.getElementById('school-lat').value);
+  const lo = parseFloat(document.getElementById('school-lng').value);
+  const msg = document.getElementById('dev-school-msg');
+  if (isNaN(la) || isNaN(lo)) { msg.textContent = '위도/경도를 올바르게 입력하세요.'; msg.style.color='#F87171'; return; }
+  cfg.schoolLat = la; cfg.schoolLng = lo;
+  SCHOOL_LAT = la; SCHOOL_LNG = lo;
+  await persistCfg();
+  startGPS();
+  msg.textContent = `저장됨: ${la}, ${lo}`; msg.style.color='#10B981';
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+}
+async function devApplyGPS() {
+  const la = parseFloat(document.getElementById('dev-lat').value);
+  const lo = parseFloat(document.getElementById('dev-lng').value);
+  const msg = document.getElementById('dev-gps-msg');
+  if (isNaN(la) || isNaN(lo)) { msg.textContent = '위도/경도를 올바르게 입력하세요.'; msg.style.color='#F87171'; return; }
+  cfg.customLat = la; cfg.customLng = lo;
+  await persistCfg();
+  applyGPSResult(la, lo, false, null);
+  msg.textContent = `저장 및 적용됨: ${la}, ${lo}`; msg.style.color='#10B981';
+  setTimeout(() => { msg.textContent = ''; }, 2500);
+}
+async function devClearCustomGPS() {
+  const msg = document.getElementById('dev-gps-msg');
+  cfg.customLat = null; cfg.customLng = null;
+  document.getElementById('dev-lat').value = '';
+  document.getElementById('dev-lng').value = '';
+  await persistCfg();
+  startGPS();
+  msg.textContent = '커스텀 좌표 해제됨'; msg.style.color='var(--hint)';
+  setTimeout(() => { msg.textContent = ''; }, 2500);
 }
 
 // ===== 개발자: 학생 기록 삭제 =====
@@ -1636,7 +1723,8 @@ async function openTeacherSeatView() {
   // 좌석 HTML 생성 (room-wrap 구조 복제, 읽기 전용)
   const seatIds = [
     'T1','T2','T3','T4','T5','T6','T7',
-    'L1','L2','L3','L4','L5','L6','L7','L8',
+    'B1','B2',
+    'L1','L2','L3','L4','L5','L6','L7','L8','L9','L10','L11','L12',
     'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12',
     'R1','R2','R3','R4','R5','R6','R7','R8','R9','R10',
     'R11','R12','R13','R14','R15','R16','R17','R18'
@@ -1654,10 +1742,12 @@ async function openTeacherSeatView() {
   const mainSeats = `
     <div class="tri-deco tri-cl"></div>
     <div class="tri-deco tri-cr"></div>
+    <div class="tri-deco tri-c3"></div>
     <div class="shelf-div shelf-div-1"></div>
     <div class="shelf-div shelf-div-2"></div>
     ${['R1','R2','R3','R4','R5','R6','R7','R8','R9','R10','R11','R12','R13','R14','R15','R16','R17','R18'].map(makeSeat).join('')}
-    ${['L1','L2','L3','L4','L5','L6','L7','L8'].map(makeSeat).join('')}
+    ${['B1','B2'].map(makeSeat).join('')}
+    ${['L1','L2','L3','L4','L5','L6','L7','L8','L9','L10','L11','L12'].map(makeSeat).join('')}
     ${['C1','C2','C3','C4','C5','C6'].map(makeSeat).join('')}
     <div class="shelf-div shelf-div-3"></div>
     ${['C7','C8','C9','C10','C11','C12'].map(makeSeat).join('')}
@@ -2124,7 +2214,7 @@ Object.assign(window, {
   openForceOutModal, closeForceOutModal, confirmForceOut,
   selectSeat, confirmSeatYes, confirmSeatNo, closeSeatModal,
   openSrecModal, closeSrecModal, _closeGenericConfirm,
-  devFillClass, devFillNum, deleteStudentRecord
+  devFillClass, devFillNum, deleteStudentRecord, devApplyGPS, devClearCustomGPS, devSaveSchoolCoords
 });
 
 /* ── 뒤로가기로 모달 닫기 ── */
@@ -2250,6 +2340,7 @@ Object.assign(window, {
         <!-- 장식 삼각형 -->
         <div class="tri-deco tri-cl"></div>
         <div class="tri-deco tri-cr"></div>
+        <div class="tri-deco tri-c3"></div>
 
         <!-- R 구분선반 -->
         <div class="shelf-div shelf-div-1"></div>
@@ -2276,6 +2367,8 @@ Object.assign(window, {
         <div class="seat" data-seat="R18" onclick="selectSeat('R18')"><span class="seat-id">R18</span><span class="seat-nm"></span></div>
 
         <!-- L열 -->
+        <div class="seat" data-seat="B1" onclick="selectSeat('B1')"><span class="seat-id">B1</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="B2" onclick="selectSeat('B2')"><span class="seat-id">B2</span><span class="seat-nm"></span></div>
         <div class="seat" data-seat="L1" onclick="selectSeat('L1')"><span class="seat-id">L1</span><span class="seat-nm"></span></div>
         <div class="seat" data-seat="L2" onclick="selectSeat('L2')"><span class="seat-id">L2</span><span class="seat-nm"></span></div>
         <div class="seat" data-seat="L3" onclick="selectSeat('L3')"><span class="seat-id">L3</span><span class="seat-nm"></span></div>
@@ -2284,6 +2377,10 @@ Object.assign(window, {
         <div class="seat" data-seat="L6" onclick="selectSeat('L6')"><span class="seat-id">L6</span><span class="seat-nm"></span></div>
         <div class="seat" data-seat="L7" onclick="selectSeat('L7')"><span class="seat-id">L7</span><span class="seat-nm"></span></div>
         <div class="seat" data-seat="L8" onclick="selectSeat('L8')"><span class="seat-id">L8</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L9" onclick="selectSeat('L9')"><span class="seat-id">L9</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L10" onclick="selectSeat('L10')"><span class="seat-id">L10</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L11" onclick="selectSeat('L11')"><span class="seat-id">L11</span><span class="seat-nm"></span></div>
+        <div class="seat" data-seat="L12" onclick="selectSeat('L12')"><span class="seat-id">L12</span><span class="seat-nm"></span></div>
 
         <!-- C1그룹 -->
         <div class="seat" data-seat="C1"  onclick="selectSeat('C1')"><span class="seat-id">C1</span><span class="seat-nm"></span></div>
