@@ -812,6 +812,8 @@ function calcTotalDur(rec, nowMs) {
 // ===== 교사 좌석 액션 상태 =====
 let _tSeatSnap = {};
 let tSeatActionData = null;
+let unsubSeats = null;
+let unsubTSeats = null;
 let SCHOOL_LAT = 35.062749;
 let SCHOOL_LNG = 127.746998;
 const SCHOOL_RADIUS = 100; // 미터 (실내 GPS 오차 감안)
@@ -1231,6 +1233,7 @@ function openSeatModal() {
 function closeSeatModal(fromBack) {
   document.getElementById('seat-modal').style.display = 'none';
   pendingSeatId = null;
+  if (unsubSeats) { unsubSeats(); unsubSeats = null; }
   if (!fromBack) _pullModal();
 }
 
@@ -1250,6 +1253,13 @@ async function confirmSeatYes() {
   const errEl = document.getElementById('seat-confirm-err');
   btn.disabled = true;
   errEl.textContent = '';
+  // auth가 없으면 익명 로그인 재시도
+  if (!auth.currentUser) {
+    try { await signInAnonymously(auth); } catch(e) {
+      errEl.textContent = '로그인 실패 — 네트워크를 확인해주세요.';
+      btn.disabled = false; return;
+    }
+  }
   try {
     if (!cfg.skipGps) {
       const ok = await verifyGPSNow();
@@ -1331,6 +1341,13 @@ async function doCheckIn() {
   if (!cfg.skipTime && !isStudyTime()) { showToast('⏰', '입실 불가', '야자 시간(17:20~20:40)에만 입실할 수 있습니다.'); return; }
   await loadSeats();
   openSeatModal();
+  // 실시간 좌석 동기화 시작
+  if (unsubSeats) { unsubSeats(); unsubSeats = null; }
+  const dk = fmtDateKey(new Date());
+  unsubSeats = onValue(ref(db, `yaja/seats/${dk}`), snap => {
+    seatsData = snap.exists() ? snap.val() : {};
+    if (document.getElementById('seat-modal').style.display === 'flex') renderSeats();
+  });
 }
 async function doCheckOut() {
   const sid = getSid(); if (!sid) return;
@@ -1770,10 +1787,34 @@ async function openTeacherSeatView() {
 
   document.getElementById('t-seat-modal').classList.add('show');
   _pushModal();
+
+  // 실시간 좌석 동기화 시작
+  if (unsubTSeats) { unsubTSeats(); unsubTSeats = null; }
+  unsubTSeats = onValue(ref(db, `yaja/seats/${dk}`), snap => {
+    _updateTSeats(snap.exists() ? snap.val() : {});
+  });
 }
 function closeTeacherSeatView(fromBack) {
   document.getElementById('t-seat-modal').classList.remove('show');
+  if (unsubTSeats) { unsubTSeats(); unsubTSeats = null; }
   if (!fromBack) _pullModal();
+}
+
+function _updateTSeats(newSnap) {
+  _tSeatSnap = newSnap;
+  document.querySelectorAll('#t-seat-room-wrap .seat-ro').forEach(el => {
+    const id = el.dataset.seat;
+    const occ = newSnap[id];
+    if (occ) {
+      el.classList.add('occupied');
+      el.querySelector('.seat-nm').textContent = occ.name;
+      el.setAttribute('onclick', `teacherSeatClick('${id}')`);
+    } else {
+      el.classList.remove('occupied');
+      el.querySelector('.seat-nm').textContent = '';
+      el.removeAttribute('onclick');
+    }
+  });
 }
 
 // ===== 교사 좌석 클릭 → 학생 액션 패널 =====
