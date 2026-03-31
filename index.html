@@ -116,6 +116,8 @@ select:focus{outline:none;border-color:var(--blue);background-color:#fff;box-sha
 .date-nav .nav-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 16px;cursor:pointer;font-size:13px;color:var(--text);transition:.15s;}
 .date-nav .nav-btn:hover{border-color:var(--text);}
 .date-nav .today-btn{background:var(--text);color:#fff;border-color:var(--text);}
+.date-nav .seat-view-btn{background:var(--blue);color:#fff;border-color:var(--blue);font-family:'Do Hyeon',sans-serif;font-weight:400;font-size:15px;letter-spacing:1px;}
+.date-nav .seat-view-btn:hover{background:#14508a;border-color:#14508a;}
 .date-display{font-size:17px;font-weight:700;letter-spacing:.5px;}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0;}
 .stat{background:var(--bg);border-radius:10px;padding:10px 4px;text-align:center;}
@@ -132,8 +134,9 @@ select:focus{outline:none;border-color:var(--blue);background-color:#fff;box-sha
 table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;}
 th{padding:9px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--hint);text-transform:uppercase;border-bottom:1px solid var(--border);background:#FAFAFA;white-space:nowrap;}
 td{padding:9px 10px;border-bottom:1px solid #F3F4F6;vertical-align:middle;text-align:center;white-space:nowrap;}
-.tbl-wrap table td:nth-child(1){text-align:left;}
+.tbl-wrap table td:nth-child(1){text-align:center;}
 .tbl-wrap table td:nth-child(2){text-align:left;}
+.tbl-wrap table th:nth-child(2){text-align:left;}
 .td-memo{white-space:normal;text-align:left;font-size:11px;line-height:1.6;min-width:80px;max-width:160px;word-break:keep-all;}
 tr:last-child td{border-bottom:none;}
 /* ── 학생 기록 팝업 ── */
@@ -154,6 +157,11 @@ tr:last-child td{border-bottom:none;}
 .t-page-btn.active{background:var(--text);color:#fff;border-color:var(--text);font-weight:700;}
 .t-page-btn:disabled{opacity:.35;cursor:default;}
 tr:hover td{background:#FAFAFA;}
+th.sortable{cursor:pointer;-webkit-user-select:none;user-select:none;}
+th.sortable:hover{background:#F0F0F0;}
+th.sortable::after{content:' ↕';font-size:9px;color:var(--hint);}
+th.sort-asc::after{content:' ▲';font-size:9px;color:var(--blue);}
+th.sort-desc::after{content:' ▼';font-size:9px;color:var(--blue);}
 
 .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
 .badge.in{background:var(--green-l);color:var(--green-d);}
@@ -435,6 +443,19 @@ tr:hover td{background:#FAFAFA;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .gps-loading-text{font-size:15px;font-weight:700;color:var(--fg);margin-bottom:4px;}
 .gps-loading-sub{font-size:12px;color:var(--muted);}
+#checkout-pin-modal{display:none;}
+#student-out-alert{display:none;}
+/* ── PIN 입력 ── */
+.pin-wrap{position:relative;margin:12px 0 4px;}
+.pin-input{width:100%;padding:11px 40px 11px 14px;border:2px solid var(--border);border-radius:10px;font-size:20px;letter-spacing:6px;text-align:center;font-family:monospace;color:var(--text);outline:none;transition:.2s;}
+.pin-input:focus{border-color:var(--green);}
+.pin-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--hint);font-size:15px;padding:4px;}
+.pin-label{font-size:12px;color:var(--muted);margin-bottom:2px;text-align:left;}
+/* ── 교사 퇴실 알림 팝업 ── */
+#teacher-out-alert{display:none;z-index:2100;}
+#teacher-out-alert .t-out-icon{font-size:48px;margin-bottom:12px;}
+#teacher-out-alert .seat-confirm-sub{display:block;margin-bottom:24px;}
+#teacher-out-alert .btn-confirm-yes{width:100%;padding:14px;}
 </style>
 </head>
 <body>
@@ -568,7 +589,7 @@ tr:hover td{background:#FAFAFA;}
             <button type="button" class="nav-btn" onclick="moveDate(-1)">◀</button>
             <button type="button" class="nav-btn" onclick="moveDate(1)">▶</button>
             <button type="button" class="nav-btn today-btn" onclick="goToday()">오늘</button>
-            <button type="button" class="nav-btn" onclick="openTeacherSeatView()">좌석 현황</button>
+            <button type="button" class="nav-btn seat-view-btn" onclick="openTeacherSeatView()">좌석 현황</button>
           </div>
         </div>
         <div class="stats">
@@ -588,17 +609,18 @@ tr:hover td{background:#FAFAFA;}
         <table>
           <thead>
             <tr>
-              <th>학년·반·번</th>
+              <th class="sortable" onclick="setSort('id')">학년·반·번</th>
               <th>이름</th>
-              <th>상태</th>
-              <th>입실</th>
-              <th>퇴실</th>
-              <th>재실</th>
+              <th class="sortable" onclick="setSort('status')">상태</th>
+              <th>좌석</th>
+              <th class="sortable" onclick="setSort('in')">입실</th>
+              <th class="sortable" onclick="setSort('out')">퇴실</th>
+              <th class="sortable" onclick="setSort('dur')">재실</th>
               <th>비고</th>
             </tr>
           </thead>
           <tbody id="t-body">
-            <tr><td colspan="7" class="empty">데이터 로딩 중...</td></tr>
+            <tr><td colspan="8" class="empty">데이터 로딩 중...</td></tr>
           </tbody>
         </table>
         <div id="t-pagination" class="t-pagination"></div>
@@ -759,8 +781,8 @@ tr:hover td{background:#FAFAFA;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getDatabase, ref, get, set, onValue, child, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
-import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { getDatabase, ref, get, set, update, onValue, child, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDRoFD69iYf1MBAxE2-NywDxvbbIrYsnUU",
@@ -814,6 +836,8 @@ let _tSeatSnap = {};
 let tSeatActionData = null;
 let unsubSeats = null;
 let unsubTSeats = null;
+let unsubMyRec = null;
+let _selfCheckOut = false; // 학생 직접 퇴실 시 교사퇴실 알림 무시용
 let SCHOOL_LAT = 35.062749;
 let SCHOOL_LNG = 127.746998;
 const SCHOOL_RADIUS = 100; // 미터 (실내 GPS 오차 감안)
@@ -825,6 +849,7 @@ let unsubTeacher = null;
 const WORKER_URL = 'https://students.tjdgus1121.workers.dev/';
 
 const STUDENTS_CACHE_KEY = 'yaja_students_cache';
+const STUDENT_SEL_KEY = 'yaja_last_student';
 
 function parseCsv(text) {
   const sep = text.includes('\t') ? '\t' : ',';
@@ -914,10 +939,32 @@ async function init() {
 
   buildGradeSelects();
   buildFilterGrade();
+  restoreLastStudent();
   loadCfgUI();
   startGPS();
   updateStudentCount();
   scheduleAutoCheckout();
+}
+
+function restoreLastStudent() {
+  try {
+    const saved = localStorage.getItem(STUDENT_SEL_KEY);
+    if (!saved) return;
+    const {g, c, n} = JSON.parse(saved);
+    if (!g || !c || !n) return;
+    // 학년 설정
+    const gradeEl = document.getElementById('sel-grade');
+    gradeEl.value = g;
+    onGradeChange();
+    // 반 설정
+    const classEl = document.getElementById('sel-class');
+    classEl.value = c;
+    onClassChange();
+    // 번호 설정
+    const numEl = document.getElementById('sel-num');
+    numEl.value = n;
+    onNumChange();
+  } catch(e) {}
 }
 
 // ===== 20:40 자동 퇴실 처리 =====
@@ -1120,6 +1167,7 @@ function buildGradeSelects() {
   document.getElementById('sel-num').innerHTML   = '<option value="">선택</option>';
 }
 function onGradeChange() {
+  if (unsubMyRec) { unsubMyRec(); unsubMyRec = null; }
   const g = +document.getElementById('sel-grade').value;
   const cs = [...new Set(students.filter(s=>s.학년===g).map(s=>s.반))].sort((a,b)=>a-b);
   const sel = document.getElementById('sel-class');
@@ -1129,6 +1177,7 @@ function onGradeChange() {
   resetNameBox(); syncButtons();
 }
 function onClassChange() {
+  if (unsubMyRec) { unsubMyRec(); unsubMyRec = null; }
   const g=+document.getElementById('sel-grade').value, c=+document.getElementById('sel-class').value;
   const nums = students.filter(s=>s.학년===g&&s.반===c).sort((a,b)=>a.번호-b.번호);
   const sel = document.getElementById('sel-num');
@@ -1139,14 +1188,29 @@ function onClassChange() {
 function onNumChange() {
   const g=+document.getElementById('sel-grade').value, c=+document.getElementById('sel-class').value, n=+document.getElementById('sel-num').value;
   if (!g||!c||!n) { resetNameBox(); myTodayRec=null; syncButtons(); return; }
+  try { localStorage.setItem(STUDENT_SEL_KEY, JSON.stringify({g,c,n})); } catch(e) {}
   const s = students.find(st=>st.학년===g&&st.반===c&&st.번호===n);
   const box = document.getElementById('name-box');
   const val = document.getElementById('name-val');
   if (s) { val.textContent=s.이름; box.className='name-result filled'; }
   else   { val.textContent='학생 없음'; box.className='name-result'; }
-  // Firebase에서 오늘 기록 로드 후 버튼·칩 갱신
+  // 실시간 내 기록 구독 (교사 퇴실 처리 즉시 반영)
+  if (unsubMyRec) { unsubMyRec(); unsubMyRec = null; }
   const sid=`${g}-${c}-${n}`;
-  loadMyRec(sid).then(()=>{ syncButtons(); showMyChips(g,c,n); });
+  const dk = fmtDateKey(new Date());
+  unsubMyRec = onValue(ref(db, `yaja/attendance/${dk}/${sid}`), snap => {
+    const prev = myTodayRec;
+    myTodayRec = snap.exists() ? snap.val() : null;
+    syncButtons();
+    showMyChips(g,c,n);
+    const teacherOut1 = prev?.in && !prev?.out && myTodayRec?.out;
+    const teacherOut2 = prev?.in2 && !prev?.out2 && myTodayRec?.out2;
+    if ((teacherOut1 || teacherOut2) && !_selfCheckOut) {
+      showTeacherOutAlert();
+    }
+  }, err => {
+    console.warn('[myRec 리스너 오류]', err);
+  });
 }
 function resetNameBox() {
   document.getElementById('name-val').textContent='번호를 선택하면 표시됩니다';
@@ -1241,7 +1305,44 @@ function selectSeat(id) {
   if (seatsData[id]) return; // 이미 점유
   pendingSeatId = id;
   document.getElementById('seat-confirm-sub').textContent = `${id}번 자리`;
+  document.getElementById('seat-pin-input').value = '';
+  document.getElementById('seat-confirm-err').textContent = '';
   document.getElementById('seat-confirm').style.display = 'flex';
+  setTimeout(() => document.getElementById('seat-pin-input').focus(), 100);
+}
+function toggleSeatPin() {
+  const inp = document.getElementById('seat-pin-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function toggleCheckoutPin() {
+  const inp = document.getElementById('checkout-pin-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function closeCheckoutPin() {
+  document.getElementById('checkout-pin-modal').style.display = 'none';
+  document.getElementById('checkout-pin-input').value = '';
+  document.getElementById('checkout-pin-err').textContent = '';
+}
+async function confirmCheckoutPin() {
+  const pin = document.getElementById('checkout-pin-input').value.trim();
+  const errEl = document.getElementById('checkout-pin-err');
+  const btn = document.getElementById('btn-checkout-pin-yes');
+  if (!pin) { errEl.textContent = 'PIN을 입력하세요.'; return; }
+  const sid = getSid(); if (!sid) return;
+  const dk = fmtDateKey(new Date());
+  btn.disabled = true;
+  try {
+    const snap = await get(ref(db, `yaja/attendance/${dk}/${sid}/pin`));
+    const savedPin = snap.exists() ? snap.val() : null;
+    if (!savedPin) { errEl.textContent = '저장된 PIN이 없습니다.'; return; }
+    if (pin !== savedPin) { errEl.textContent = 'PIN이 올바르지 않습니다.'; document.getElementById('checkout-pin-input').value = ''; return; }
+    closeCheckoutPin();
+    await _doCheckOut();
+  } catch(e) {
+    errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 function confirmSeatNo() {
   pendingSeatId = null;
@@ -1265,6 +1366,10 @@ async function confirmSeatYes() {
       const ok = await verifyGPSNow();
       if (!ok) { errEl.textContent = '학교 위치가 확인되지 않습니다. GPS를 확인해주세요.'; return; }
     }
+    const pin = document.getElementById('seat-pin-input').value.trim();
+    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      errEl.textContent = '숫자 4자리 PIN을 입력하세요.'; return;
+    }
     const dk = fmtDateKey(new Date());
     const [g,c,n] = sid.split('-').map(Number);
     const student = students.find(s => s.학년===g && s.반===c && s.번호===n);
@@ -1272,17 +1377,23 @@ async function confirmSeatYes() {
     const isSession2 = !!(myTodayRec?.out && !myTodayRec?.in2);
     const inKey   = isSession2 ? 'in2'   : 'in';
     const seatKey = isSession2 ? 'seat2' : 'seat';
+    // 입실 시각을 serverTimestamp로 먼저 기록 후 나머지를 원자적으로 업데이트
     const inRef = ref(db, `yaja/attendance/${dk}/${sid}/${inKey}`);
     await set(inRef, serverTimestamp());
-    await set(ref(db, `yaja/attendance/${dk}/${sid}/${seatKey}`), pendingSeatId);
-    await set(ref(db, `yaja/seats/${dk}/${pendingSeatId}`), { sid, name });
     const snap = await get(inRef);
-    myTodayRec = { ...(myTodayRec||{}), [inKey]: snap.val(), [seatKey]: pendingSeatId };
+    const inTs = snap.val();
+    // attendance + seats + pin 을 한 번에 원자적으로 기록
+    await update(ref(db), {
+      [`yaja/attendance/${dk}/${sid}/${seatKey}`]: pendingSeatId,
+      [`yaja/attendance/${dk}/${sid}/pin`]: pin,
+      [`yaja/seats/${dk}/${pendingSeatId}`]: { sid, name },
+    });
+    myTodayRec = { ...(myTodayRec||{}), [inKey]: inTs, [seatKey]: pendingSeatId };
     seatsData[pendingSeatId] = { sid, name };
     document.getElementById('seat-confirm').style.display = 'none';
     closeSeatModal();
     showMyChips(g,c,n); syncButtons();
-    showToast('✅', '입실 완료!', `${name} · ${fmtTime(snap.val())}`);
+    showToast('✅', '입실 완료!', `${name} · ${fmtTime(inTs)}`);
   } catch(e) {
     console.error('[입실 오류]', e);
     if (e.code === 'PERMISSION_DENIED' || (e.message && e.message.includes('PERMISSION_DENIED'))) {
@@ -1320,6 +1431,21 @@ function _closeGenericConfirm(result, fromBack) {
   if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
 }
 
+// ===== 교사 퇴실 알림 팝업 =====
+function showTeacherOutAlert() {
+  document.getElementById('teacher-out-alert').style.display = 'flex';
+}
+function closeTeacherOutAlert() {
+  document.getElementById('teacher-out-alert').style.display = 'none';
+}
+function showStudentOutAlert(name, time) {
+  document.getElementById('student-out-name').textContent = `${name} · ${time}`;
+  document.getElementById('student-out-alert').style.display = 'flex';
+}
+function closeStudentOutAlert() {
+  document.getElementById('student-out-alert').style.display = 'none';
+}
+
 // ===== Toast 애니메이션 =====
 function showToast(icon, title, sub) {
   const prev = document.getElementById('toast-overlay');
@@ -1352,30 +1478,39 @@ async function doCheckIn() {
 async function doCheckOut() {
   const sid = getSid(); if (!sid) return;
   if (!cfg.skipTime && !isStudyTime()) { showToast('⏰', '퇴실 불가', '야자 시간(17:20~20:40)에만 퇴실할 수 있습니다.'); return; }
+  if (!myTodayRec?.in) return;
+  // PIN 확인 팝업 표시
+  document.getElementById('checkout-pin-input').value = '';
+  document.getElementById('checkout-pin-err').textContent = '';
+  document.getElementById('checkout-pin-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('checkout-pin-input').focus(), 100);
+}
+async function _doCheckOut() {
+  const sid = getSid(); if (!sid) return;
+  _selfCheckOut = true; // 직접 퇴실 → 교사퇴실 알림 무시
   const rec = myTodayRec;
   const isSession2 = !!(rec?.in2 && !rec?.out2);
   const outKey  = isSession2 ? 'out2'  : 'out';
   const seatKey = isSession2 ? 'seat2' : 'seat';
-  if (!rec?.in) return;
   const btn = document.getElementById('btn-out');
   btn.disabled = true;
   const dk = fmtDateKey(new Date());
   try {
     const outRef = ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`);
     await set(outRef, serverTimestamp());
-    const currentSeat = rec?.[seatKey];
-    if (currentSeat) {
-      await set(ref(db, `yaja/seats/${dk}/${currentSeat}`), null);
-      delete seatsData[currentSeat];
-    }
     const snap = await get(outRef);
+    const currentSeat = rec?.[seatKey];
+    const updates = { [`yaja/attendance/${dk}/${sid}/${outKey}`]: snap.val() };
+    if (currentSeat) updates[`yaja/seats/${dk}/${currentSeat}`] = null;
+    await update(ref(db), updates);
+    if (currentSeat) delete seatsData[currentSeat];
     myTodayRec = { ...rec, [outKey]: snap.val() };
     const [g,c,n] = sid.split('-').map(Number);
     showMyChips(g,c,n);
     const name = students.find(s=>`${s.학년}-${s.반}-${s.번호}`===sid)?.이름 ?? '';
-    showToast('👋', '퇴실 완료!', `${name} · ${fmtTime(snap.val())}`);
+    showStudentOutAlert(name, fmtTime(snap.val()));
   } catch(e){ showToast('❌', '퇴실 실패', '네트워크를 확인해주세요.'); }
-  finally { syncButtons(); }
+  finally { syncButtons(); setTimeout(() => { _selfCheckOut = false; }, 3000); }
 }
 
 // ===== 내 기록 칩 =====
@@ -1448,27 +1583,53 @@ function attachTeacherListener() {
   });
 }
 
+let _sortKey = 'status';
+let _sortAsc = true;
+function _updateSortHeaders() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    const k = th.getAttribute('onclick').match(/setSort\('(\w+)'\)/)?.[1];
+    if (k === _sortKey) th.classList.add(_sortAsc ? 'sort-asc' : 'sort-desc');
+  });
+}
+function setSort(key) {
+  if (_sortKey === key) _sortAsc = !_sortAsc;
+  else { _sortKey = key; _sortAsc = true; }
+  _updateSortHeaders();
+  renderTable();
+}
+
 function renderTable() {
   const dayRec = _lastDayRec;
   const fg=+document.getElementById('f-grade').value, fc=+document.getElementById('f-class').value;
   let list=students;
   if (fg) list=list.filter(s=>s.학년===fg);
   if (fc) list=list.filter(s=>s.반===fc);
-  // 0=재실, 1=퇴실, 2=미출석
   const statusOrder = rec => {
     if (!rec) return 2;
     if ((rec.in && !rec.out) || (rec.in2 && !rec.out2)) return 0;
     if (rec.out || rec.out2) return 1;
     return 2;
   };
-  list=list.sort((a,b)=>{
-    const sidA=`${a.학년}-${a.반}-${a.번호}`, sidB=`${b.학년}-${b.반}-${b.번호}`;
-    return statusOrder(dayRec[sidA])-statusOrder(dayRec[sidB]) || a.학년-b.학년 || a.반-b.반 || a.번호-b.번호;
+  const getInT  = rec => rec?.in2 ?? rec?.in ?? 0;
+  const getOutT = rec => rec?.out2 ?? rec?.out ?? 0;
+  const getDur  = rec => rec ? calcTotalDur(rec, null) : 0;
+  const dir = _sortAsc ? 1 : -1;
+  list = [...list].sort((a,b) => {
+    const ra = dayRec[`${a.학년}-${a.반}-${a.번호}`];
+    const rb = dayRec[`${b.학년}-${b.반}-${b.번호}`];
+    let diff = 0;
+    if (_sortKey === 'status') diff = statusOrder(ra) - statusOrder(rb);
+    else if (_sortKey === 'in')  diff = getInT(ra)  - getInT(rb);
+    else if (_sortKey === 'out') diff = getOutT(ra) - getOutT(rb);
+    else if (_sortKey === 'dur') diff = getDur(ra)  - getDur(rb);
+    else diff = a.학년-b.학년 || a.반-b.반 || a.번호-b.번호;
+    return diff !== 0 ? diff * dir : (a.학년-b.학년 || a.반-b.반 || a.번호-b.번호);
   });
 
   const tbody=document.getElementById('t-body');
   if (!list.length) {
-    tbody.innerHTML='<tr><td colspan="7" class="empty">등록된 학생이 없습니다<br><small>교사 탭에서 엑셀을 업로드하세요</small></td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" class="empty">등록된 학생이 없습니다<br><small>교사 탭에서 엑셀을 업로드하세요</small></td></tr>';
     document.getElementById('t-pagination').innerHTML='';
     updateStats(0,0,0,0); return;
   }
@@ -1496,6 +1657,10 @@ function renderTable() {
       else if (rec?.in && !rec?.out) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in); }
       else if (rec?.out) { badge='<span class="badge out">퇴실</span>'; inT=fmtTime(rec.in); outT=fmtTime(rec.out); dur=fmtDur(calcTotalDur(rec,null)); }
       const numStr=String(s.번호).padStart(2,'0');
+      // 현재 좌석: 재실 중인 회차의 seat 값
+      let seatTd = '-';
+      if (rec?.in2 && !rec?.out2 && rec?.seat2) seatTd = `<span style="font-weight:700;color:var(--green-d)">${rec.seat2}</span>`;
+      else if (rec?.in && !rec?.out && rec?.seat) seatTd = `<span style="font-weight:700;color:var(--green-d)">${rec.seat}</span>`;
       let memo = '-';
       if (rec?.penalties?.length) {
         memo = rec.penalties.map(p => {
@@ -1505,7 +1670,7 @@ function renderTable() {
           return `<span style="color:var(--red-d)">${escapeHtml(p.note)}${pen}</span> <span style="color:var(--hint)">${ts}</span>`;
         }).join('<br>');
       }
-      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline" onclick="openSrecModal('${sid}')">${escapeHtml(s.이름)}</td><td>${badge}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
+      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline;text-align:left" onclick="openSrecModal('${sid}')">${escapeHtml(s.이름)}</td><td>${badge}</td><td>${seatTd}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
     }).join('');
     renderPagination();
   }
@@ -2137,6 +2302,7 @@ function showTeacherContent() {
   buildFilterGrade();
   loadCfgUI();
   updateStudentCount();
+  _updateSortHeaders();   // 정렬 삼각형 초기 표시
   renderTable();          // 즉시 렌더 (Firebase 응답 전에도 학생 목록 표시)
   attachTeacherListener(); // Firebase 실시간 리스너 시작 → 출석 데이터 오면 다시 렌더
 }
@@ -2212,6 +2378,32 @@ function showMsg(id, txt) {
   setTimeout(()=>el.textContent='',3000);
 }
 
+// ===== auth 상태 변화 시 리스너 재구독 =====
+// 교사 로그인/로그아웃 시 auth가 바뀌면 onValue 리스너가 permission_denied로 죽음
+// auth가 복구(익명 로그인 완료)되면 unsubMyRec을 재구독
+onAuthStateChanged(auth, user => {
+  if (!user) return; // 로그아웃 순간은 무시
+  // 현재 학생이 선택돼 있으면 리스너 재구독
+  const g = +document.getElementById('sel-grade').value;
+  const c = +document.getElementById('sel-class').value;
+  const n = +document.getElementById('sel-num').value;
+  if (!g || !c || !n) return;
+  if (unsubMyRec) { unsubMyRec(); unsubMyRec = null; }
+  const sid = `${g}-${c}-${n}`;
+  const dk = fmtDateKey(new Date());
+  unsubMyRec = onValue(ref(db, `yaja/attendance/${dk}/${sid}`), snap => {
+    const prev = myTodayRec;
+    myTodayRec = snap.exists() ? snap.val() : null;
+    syncButtons();
+    showMyChips(g, c, n);
+    const teacherOut1 = prev?.in && !prev?.out && myTodayRec?.out;
+    const teacherOut2 = prev?.in2 && !prev?.out2 && myTodayRec?.out2;
+    if ((teacherOut1 || teacherOut2) && !_selfCheckOut) {
+      showTeacherOutAlert();
+    }
+  }, err => { console.warn('[myRec 재구독 오류]', err); });
+});
+
 // ===== 시작 =====
 init();
 
@@ -2269,7 +2461,9 @@ Object.assign(window, {
   teacherSeatClick, closeTeacherSeatAction, teacherCheckOut,
   openForceOutModal, closeForceOutModal, confirmForceOut,
   selectSeat, confirmSeatYes, confirmSeatNo, closeSeatModal,
-  openSrecModal, closeSrecModal, _closeGenericConfirm,
+  toggleSeatPin, toggleCheckoutPin, closeCheckoutPin, confirmCheckoutPin,
+  openSrecModal, closeSrecModal, _closeGenericConfirm, closeTeacherOutAlert, closeStudentOutAlert,
+  setSort,
   devFillClass, devFillNum, deleteStudentRecord, devApplyGPS, devClearCustomGPS, devSaveSchoolCoords
 });
 
@@ -2524,10 +2718,32 @@ Object.assign(window, {
   <div class="seat-confirm-box">
     <div class="seat-confirm-title">해당 자리에 착석하겠습니까?</div>
     <div class="seat-confirm-sub" id="seat-confirm-sub"></div>
+    <div class="pin-label">퇴실 시 사용할 PIN 설정 (숫자 4자리)</div>
+    <div class="pin-wrap">
+      <input class="pin-input" type="password" id="seat-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+      <button type="button" class="pin-toggle" onclick="toggleSeatPin()">👁</button>
+    </div>
     <div id="seat-confirm-err" class="modal-err"></div>
     <div class="seat-confirm-btns">
       <button type="button" class="btn-confirm-no"  onclick="confirmSeatNo()">아니오</button>
       <button type="button" class="btn-confirm-yes" id="btn-seat-yes" onclick="confirmSeatYes()">예</button>
+    </div>
+  </div>
+</div>
+
+<!-- 퇴실 PIN 확인 팝업 -->
+<div class="seat-confirm" id="checkout-pin-modal">
+  <div class="seat-confirm-box">
+    <div class="seat-confirm-title">퇴실 확인</div>
+    <div class="seat-confirm-sub">입실 시 설정한 PIN을 입력하세요</div>
+    <div class="pin-wrap">
+      <input class="pin-input" type="password" id="checkout-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+      <button type="button" class="pin-toggle" onclick="toggleCheckoutPin()">👁</button>
+    </div>
+    <div id="checkout-pin-err" class="modal-err"></div>
+    <div class="seat-confirm-btns">
+      <button type="button" class="btn-confirm-no" onclick="closeCheckoutPin()">취소</button>
+      <button type="button" class="btn-confirm-yes" id="btn-checkout-pin-yes" onclick="confirmCheckoutPin()">퇴실</button>
     </div>
   </div>
 </div>
@@ -2592,6 +2808,26 @@ Object.assign(window, {
 </div>
 
 </div><!-- /#app-frame -->
+
+<!-- 학생 직접 퇴실 알림 팝업 -->
+<div class="seat-confirm" id="student-out-alert">
+  <div class="seat-confirm-box">
+    <div class="t-out-icon">👋</div>
+    <div class="seat-confirm-title">퇴실하였습니다</div>
+    <div class="seat-confirm-sub" id="student-out-name"></div>
+    <button type="button" class="btn-confirm-yes" onclick="closeStudentOutAlert()">확인</button>
+  </div>
+</div>
+
+<!-- 교사 퇴실 알림 팝업 -->
+<div class="seat-confirm" id="teacher-out-alert">
+  <div class="seat-confirm-box">
+    <div class="t-out-icon">📢</div>
+    <div class="seat-confirm-title">교사가 퇴실처리했습니다</div>
+    <div class="seat-confirm-sub">담당 교사에 의해 퇴실 처리되었습니다.</div>
+    <button type="button" class="btn-confirm-yes" onclick="closeTeacherOutAlert()">확인</button>
+  </div>
+</div>
 
 <!-- 범용 확인 모달 — #app-frame 밖에 위치해야 stacking context 문제 없음 -->
 <div class="seat-confirm" id="generic-confirm">
