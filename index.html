@@ -320,7 +320,7 @@ tr:hover td{background:#FAFAFA;}
 .seat-nm{font-size:9px;font-weight:700;line-height:1.2;margin-top:2px;color:var(--red-d);word-break:keep-all;text-align:center;}
 .seat.mine .seat-nm{color:var(--blue);}
 .btn-seat-cancel{margin-top:14px;width:100%;padding:11px;background:#E5E7EB;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;color:var(--text);}
-.seat-confirm{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;display:none;align-items:center;justify-content:center;padding:20px;}
+.seat-confirm{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1500;display:none;align-items:center;justify-content:center;padding:20px;}
 .seat-confirm-box{background:#fff;border-radius:18px;padding:30px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);}
 .seat-confirm-title{font-size:17px;font-weight:700;margin-bottom:6px;}
 .seat-confirm-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
@@ -1274,7 +1274,12 @@ async function confirmSeatYes() {
     showMyChips(g,c,n); syncButtons();
     showToast('✅', '입실 완료!', `${name} · ${fmtTime(snap.val())}`);
   } catch(e) {
-    errEl.textContent = '저장 실패 — 네트워크를 확인해주세요.';
+    console.error('[입실 오류]', e);
+    if (e.code === 'PERMISSION_DENIED' || (e.message && e.message.includes('PERMISSION_DENIED'))) {
+      errEl.textContent = '저장 실패 — 권한이 없습니다. 로그인 상태를 확인해주세요.';
+    } else {
+      errEl.textContent = '저장 실패 — 네트워크를 확인해주세요. (' + (e.code || e.message || '알 수 없는 오류') + ')';
+    }
   } finally {
     btn.disabled = false;
   }
@@ -1289,7 +1294,9 @@ function showConfirm(title, sub = '') {
     const subEl = document.getElementById('generic-confirm-sub');
     subEl.textContent = sub;
     subEl.style.display = sub ? '' : 'none';
-    document.getElementById('generic-confirm').style.display = 'flex';
+    const gcEl = document.getElementById('generic-confirm');
+    document.body.appendChild(gcEl); // 항상 DOM 맨 끝으로 이동 → stacking context 문제 방지
+    gcEl.style.display = 'flex';
     _pushModal();
     document.getElementById('generic-confirm-yes').onclick = () => _closeGenericConfirm(true);
     document.getElementById('generic-confirm-no').onclick  = () => _closeGenericConfirm(false);
@@ -1814,7 +1821,15 @@ async function teacherCheckOut() {
     await set(ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`), serverTimestamp());
     await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
     delete _tSeatSnap[seatId];
+    // 좌석 현황 즉각 반영
+    const seatEl = document.querySelector(`.seat-ro[data-seat="${seatId}"]`);
+    if (seatEl) {
+      seatEl.classList.remove('occupied');
+      seatEl.querySelector('.seat-nm').textContent = '';
+      seatEl.removeAttribute('onclick');
+    }
     closeTeacherSeatAction();
+    showToast('✅', '퇴실 처리 완료', `${name} 학생이 퇴실 처리되었습니다.`);
   } catch(e) {
     errEl.textContent = '처리 실패 — 네트워크를 확인해주세요.';
   } finally {
@@ -2485,17 +2500,6 @@ Object.assign(window, {
   </div>
 </div>
 
-<!-- 범용 확인 모달 -->
-<div class="seat-confirm" id="generic-confirm">
-  <div class="seat-confirm-box">
-    <div class="seat-confirm-title" id="generic-confirm-title"></div>
-    <div class="seat-confirm-sub" id="generic-confirm-sub"></div>
-    <div class="seat-confirm-btns">
-      <button type="button" class="btn-confirm-no"  id="generic-confirm-no">취소</button>
-      <button type="button" class="btn-confirm-yes" id="generic-confirm-yes">확인</button>
-    </div>
-  </div>
-</div>
 
 <!-- 하단 상태 바 -->
 <div id="status-bar-bottom">
@@ -2547,5 +2551,17 @@ Object.assign(window, {
 </div>
 
 </div><!-- /#app-frame -->
+
+<!-- 범용 확인 모달 — #app-frame 밖에 위치해야 stacking context 문제 없음 -->
+<div class="seat-confirm" id="generic-confirm">
+  <div class="seat-confirm-box">
+    <div class="seat-confirm-title" id="generic-confirm-title"></div>
+    <div class="seat-confirm-sub" id="generic-confirm-sub"></div>
+    <div class="seat-confirm-btns">
+      <button type="button" class="btn-confirm-no"  id="generic-confirm-no">취소</button>
+      <button type="button" class="btn-confirm-yes" id="generic-confirm-yes">확인</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
