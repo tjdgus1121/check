@@ -1,4 +1,4 @@
-const CACHE = 'yaja-v1';
+const CACHE = 'yaja-v2';
 const ASSETS = [
   './check.html',
   './faviconlogo.png',
