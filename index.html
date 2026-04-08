@@ -66,6 +66,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .gps.checking .gps-dot{background:var(--amber);animation:pulse 1.2s infinite;}
 .gps.skip{background:#F3F4F6;color:var(--muted);}
 .gps.skip .gps-dot{background:var(--hint);}
+.gps.force{background:#FEF3C7;color:#92400E;font-weight:700;}
+.gps.force .gps-dot{background:#F59E0B;animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes toast-in{0%{opacity:0;transform:scale(.8)}60%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
 @keyframes toast-out{to{opacity:0;transform:scale(.85)}}
@@ -138,6 +140,20 @@ td{padding:9px 10px;border-bottom:1px solid #F3F4F6;vertical-align:middle;text-a
 .tbl-wrap table td:nth-child(2){text-align:left;}
 .tbl-wrap table th:nth-child(2){text-align:left;}
 .td-memo{white-space:normal;text-align:left;font-size:11px;line-height:1.6;min-width:80px;max-width:160px;word-break:keep-all;}
+.td-name-wrap{display:inline-flex;align-items:center;gap:6px;}
+.dev-del-btn{
+  display:none;background:none;border:none;cursor:pointer;
+  color:var(--red-d);font-size:13px;line-height:1;
+  padding:3px 5px;border-radius:6px;
+  opacity:0;transform:scale(.8);
+  transition:opacity .15s,transform .15s,background .15s,color .15s;
+}
+.dev-del-btn:hover{
+  background:var(--red-d);color:#fff;
+  transform:scale(1.15);opacity:1;
+}
+tr:hover .dev-del-btn{display:inline-flex;opacity:.55;transform:scale(1);}
+tr:hover .dev-del-btn:hover{opacity:1;}
 tr:last-child td{border-bottom:none;}
 /* ── 학생 기록 팝업 ── */
 .srec-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1400;align-items:flex-end;justify-content:center;padding:0;}
@@ -197,7 +213,11 @@ th.sort-desc::after{content:' ▼';font-size:9px;color:var(--blue);}
 .t-seat-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .t-seat-title{font-size:15px;font-weight:700;}
 .t-seat-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--hint);line-height:1;padding:2px 6px;}
+.t-seat-floor-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.t-floor-tab{flex:1;padding:7px 0;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);transition:.15s;}
+.t-floor-tab.active{background:var(--green);color:#fff;border-color:var(--green);}
 .t-seat-legend{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;gap:12px;}
+.t-seat-room-wrap-hidden{display:none;}
 .leg-free{color:var(--green);}
 .leg-occ{color:#F87171;}
 /* 교사 뷰 좌석: 점유 자리만 클릭 가능 */
@@ -331,7 +351,7 @@ th.sort-desc::after{content:' ▼';font-size:9px;color:var(--blue);}
 .seat-confirm{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1500;display:none;align-items:center;justify-content:center;padding:20px;}
 .seat-confirm-box{background:#fff;border-radius:18px;padding:30px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);}
 .seat-confirm-title{font-size:17px;font-weight:700;margin-bottom:6px;}
-.seat-confirm-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.seat-confirm-sub{font-size:13px;color:var(--muted);margin-bottom:24px;word-break:keep-all;}
 .seat-confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .btn-confirm-yes{padding:13px;background:var(--green);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;}
 .btn-confirm-no{padding:13px;background:#F3F4F6;color:var(--text);border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;}
@@ -456,6 +476,71 @@ th.sort-desc::after{content:' ▼';font-size:9px;color:var(--blue);}
 #teacher-out-alert .t-out-icon{font-size:48px;margin-bottom:12px;}
 #teacher-out-alert .seat-confirm-sub{display:block;margin-bottom:24px;}
 #teacher-out-alert .btn-confirm-yes{width:100%;padding:14px;}
+
+/* ── 층 선택 모달 ── */
+.floor-select-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1050;display:none;align-items:center;justify-content:center;padding:20px;}
+.floor-select-box{background:#fff;border-radius:20px;padding:28px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.2);}
+.floor-select-title{font-family:'Do Hyeon',sans-serif;font-size:20px;margin-bottom:6px;}
+.floor-select-sub{font-size:13px;color:var(--muted);margin-bottom:22px;}
+.floor-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.floor-btn{padding:22px 0;border:none;border-radius:14px;font-family:'Do Hyeon',sans-serif;font-size:22px;letter-spacing:1px;cursor:pointer;transition:.15s;}
+.floor-btn:hover{opacity:.85;}
+.floor-btn-1{background:var(--green);color:#fff;}
+.floor-btn-2{background:var(--blue);color:#fff;}
+.floor-select-cancel{margin-top:12px;width:100%;padding:11px;background:#F3F4F6;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;color:var(--text);}
+
+/* ── 2층 좌석 모달 ── */
+.seat-modal-2f{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;align-items:center;justify-content:center;overflow:auto;padding:16px;}
+.seat-modal-2f-box{background:#EEF2FF;border-radius:18px;padding:18px 20px;position:relative;}
+.seat-modal-2f-hdr{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.seat-modal-2f-title{font-family:'Do Hyeon',sans-serif;font-size:17px;}
+/* ── 2층 룸 레이아웃 ── */
+.room-wrap-2f{background:#EEF2FF;border-top:4px solid #1e3a8a;border-right:4px solid #1e3a8a;width:fit-content;display:flex;flex-direction:row;align-items:flex-start;gap:4px;padding:10px;zoom:var(--seat-scale-2f,1);}
+.window-col-2f{width:20px;align-self:stretch;background:#BFDBFE;border:1.5px solid #93C5FD;border-radius:6px;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-size:8px;font-weight:700;color:#1D4ED8;letter-spacing:3px;flex-shrink:0;}
+/* zone-lc: 왼쪽벽+중앙 영역 (세로 flex) */
+.zone-lc{display:flex;flex-direction:column;gap:4px;}
+.zone-rows1to12{display:flex;flex-direction:row;gap:4px;align-items:flex-start;}
+.zone-rows13to16{display:flex;flex-direction:row;gap:4px;align-items:flex-end;}
+.zone-center-bot{display:flex;flex-direction:column;gap:4px;justify-content:flex-end;}
+.zone-center-bot-inner{display:flex;flex-direction:row;gap:4px;align-items:flex-start;}
+.zone-row15-blank{height:19px;}
+/* ── 각 영역 그리드 (공용 베이스: .seat-grid-2f) ── */
+.seat-grid-2f{display:grid;gap:4px;}
+.seat-area-left-top{grid-template-columns:46px;grid-template-rows:46px 19px 56px 40px 56px 40px 56px 40px 56px 0px;}
+.seat-center-wrap{display:flex;flex-direction:column;}
+.seat-area-center-r1{grid-template-columns:32px 46px 32px 46px 46px 46px 32px;grid-template-rows:46px 19px;}           /* ← 행1~2, 빈열=32px */
+.seat-area-center-r3to12{grid-template-columns:32px 46px 46px 46px 46px 32px;grid-template-rows:46px 19px 46px 19px 46px 19px 46px 19px 46px 19px;} /* ← 행3~12, 빈열=32px */
+.seat-area-left-bot{grid-template-columns:46px;grid-template-rows:56px 19px 46px 19px 46px;}
+.zone-blank-col{grid-template-columns:32px;grid-template-rows:8px 46px 8px 46px 8px 46px 8px;}
+.seat-area-2326{margin-top: 35px; grid-template-columns:8px 46px 8px 46px 8px;grid-template-rows:8px 46px 8px 46px 8px 46px 8px;gap:0;}  /* ← 23~26, 벽 포함 5×7 */
+.wall-2f{background:linear-gradient(90deg,#a06030 0%,#c8924e 30%,#d4a064 50%,#c8924e 70%,#a06030 100%);}
+.seat-area-3738{grid-template-columns:46px;grid-template-rows:8px 46px 8px 46px 8px 46px 8px;margin-top:-25px;margin-left:-7px;}  /* ← 37 상단정렬, 1행 추가 */
+.zone-teacher-area{grid-template-columns:46px;grid-template-rows:8px 46px 8px 46px 8px 46px 8px;margin-left:8px;}
+.zone-row16-center{margin-bottom:8px; grid-template-columns:16px 46px 16px 46px 16px 46px 16px;grid-template-rows:46px;}
+.zone-right-col{display:flex;flex-direction:column;align-items:flex-start;}
+.seat-area-right{grid-template-columns:46px;grid-template-rows:19px 56px 19px 56px 19px 56px 19px 56px 19px 56px 19px 56px 19px 56px;}  /* ← 8열: 16~22, 상단 빈칸+10px */
+.seat-area-1{margin-top:103px;margin-left:-70px;}
+.entrance-2f{margin-top:-43px;margin-left:10px;width:28px;height:46px;background:#1A1A1A;color:#fff;font-size:10px;font-weight:700;border-radius:0 4px 4px 0;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;letter-spacing:4px;border-left:4px solid #374151;}
+/* 셀 공용 스타일 */
+.seat-grid-2f .seat{width:46px;height:46px;border-radius:7px;}
+.seat-grid-2f .seat .seat-id{font-size:10px;}
+.seat-grid-2f .seat .seat-nm{font-size:8px;}
+.seat-grid-2f .seat-2f-disabled{background:#F3F4F6;border-color:#D1D5DB;cursor:not-allowed;pointer-events:none;opacity:.65;}
+.seat-grid-2f .teacher-desk-2f{width:46px;height:46px;background:#FEF9C3;border:2px dashed #CA8A04;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#92400E;text-align:center;line-height:1.3;}
+.seat-grid-2f .grid-blank-2f{width:auto;height:auto;background:transparent;border:none;}
+/* 25,26,24,23 개별 벽 테두리 */
+.seat-wall-25{border-top:5px solid #374151!important;border-right:5px solid #374151!important;border-bottom:2px solid var(--green)!important;border-left:none!important;border-radius:0 7px 0 0!important;}
+.seat-wall-26{border-top:2px solid var(--green)!important;border-right:5px solid #374151!important;border-bottom:5px solid #374151!important;border-left:2px solid var(--green)!important;border-radius:0 0 7px 0!important;}
+.seat-wall-24{border-top:5px solid #374151!important;border-right:2px solid var(--green)!important;border-bottom:2px solid var(--green)!important;border-left:5px solid #374151!important;border-radius:7px 0 0 0!important;}
+.seat-wall-23{border-top:2px solid var(--green)!important;border-right:2px solid var(--green)!important;border-bottom:5px solid #374151!important;border-left:5px solid #374151!important;border-radius:0 0 0 7px!important;}
+@media (orientation:portrait) and (max-width:499px){
+  .seat-modal-2f{padding:8px;}
+  .seat-modal-2f-box{overflow:auto;max-height:90vh;padding:12px 8px;}
+}
+@media (orientation:landscape) and (max-height:500px){
+  .seat-modal-2f{padding:0;}
+  .seat-modal-2f-box{border-radius:0;overflow:auto;max-height:100vh;}
+}
 </style>
 </head>
 <body>
@@ -781,7 +866,7 @@ th.sort-desc::after{content:' ▼';font-size:9px;color:var(--blue);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getDatabase, ref, get, set, update, onValue, child, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+import { getDatabase, ref, get, set, update, push, onValue, child, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -833,9 +918,12 @@ function calcTotalDur(rec, nowMs) {
 
 // ===== 교사 좌석 액션 상태 =====
 let _tSeatSnap = {};
+let _tSeatSnap2 = {};
+let _tFloor = 1;
 let tSeatActionData = null;
 let unsubSeats = null;
 let unsubTSeats = null;
+let unsubTSeats2 = null;
 let unsubMyRec = null;
 let _selfCheckOut = false; // 학생 직접 퇴실 시 교사퇴실 알림 무시용
 let SCHOOL_LAT = 35.062749;
@@ -944,6 +1032,24 @@ async function init() {
   startGPS();
   updateStudentCount();
   scheduleAutoCheckout();
+  scheduleForceOutMode();
+  // 탭 재활성화 시 날짜 변경 감지 → 리스너 갱신
+  let _lastDk = fmtDateKey(new Date());
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    const dk = fmtDateKey(new Date());
+    if (dk !== _lastDk) {
+      _lastDk = dk;
+      _autoCheckoutDone = false; // 날짜 바뀌면 플래그 리셋
+      // 날짜 바뀐 경우: 내 기록 리스너 재구독
+      const sid = getSid();
+      if (sid) onNumChange();
+      // 교사 탭이 열려있으면 오늘 날짜로 이동
+      if (document.getElementById('tab-teacher')?.classList.contains('active')) goToday();
+      scheduleForceOutMode();
+    }
+    scheduleAutoCheckout(); // 날짜 무관하게 항상 체크 (탭 복귀 시 20:40 지났으면 즉시 퇴실)
+  });
 }
 
 function restoreLastStudent() {
@@ -968,28 +1074,50 @@ function restoreLastStudent() {
 }
 
 // ===== 20:40 자동 퇴실 처리 =====
+let _autoCheckoutDone = false;
+async function runAutoCheckout() {
+  if (_autoCheckoutDone) return;
+  _autoCheckoutDone = true;
+  const dk = fmtDateKey(new Date());
+  const snap = await get(ref(db, `yaja/attendance/${dk}`));
+  if (!snap.exists()) return;
+  const data = snap.val();
+  const ts = serverTimestamp();
+  const updates = {};
+  Object.entries(data).forEach(([sid, rec]) => {
+    if (rec.in && !rec.out) {
+      updates[`yaja/attendance/${dk}/${sid}/out`] = ts;
+      if (rec.seat) updates[`yaja/${rec.seat.startsWith('2F_') ? 'seats2' : 'seats'}/${dk}/${rec.seat}`] = null;
+    }
+    if (rec.in2 && !rec.out2) {
+      updates[`yaja/attendance/${dk}/${sid}/out2`] = ts;
+      if (rec.seat2) updates[`yaja/${rec.seat2.startsWith('2F_') ? 'seats2' : 'seats'}/${dk}/${rec.seat2}`] = null;
+    }
+  });
+  if (Object.keys(updates).length) await update(ref(db), updates);
+}
 function scheduleAutoCheckout() {
-  if (cfg.skipTime) return; // 시간 제한 건너뛰기 모드에선 자동퇴실 불필요
+  if (cfg.skipTime) return;
   const now = new Date();
   const end = new Date(now);
   end.setHours(20, 40, 0, 0);
   const ms = end - now;
-  if (ms <= 0) return; // 이미 지났으면 무시
-  setTimeout(async () => {
-    const dk = fmtDateKey(new Date());
-    const snap = await get(ref(db, `yaja/attendance/${dk}`));
-    if (!snap.exists()) return;
-    const data = snap.val();
-    const ts = Date.now();
-    const writes = [];
-    Object.entries(data).forEach(([sid, rec]) => {
-      // 1회차 미퇴실
-      if (rec.in && !rec.out) writes.push(set(ref(db, `yaja/attendance/${dk}/${sid}/out`), ts));
-      // 2회차 미퇴실
-      if (rec.in2 && !rec.out2) writes.push(set(ref(db, `yaja/attendance/${dk}/${sid}/out2`), ts));
-    });
-    if (writes.length) await Promise.all(writes);
-    console.log(`[자동퇴실] ${writes.length}건 처리 완료`);
+  if (ms <= 0) { runAutoCheckout(); return; } // 이미 20:40 지난 경우 즉시 실행
+  setTimeout(() => runAutoCheckout(), ms);
+}
+
+// ===== 강제퇴실 모드 예약 (20:40 UI 갱신) =====
+function scheduleForceOutMode() {
+  if (cfg.skipTime) return;
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(20, 40, 0, 0);
+  const ms = end - now;
+  if (ms <= 0) return;
+  setTimeout(() => {
+    syncButtons();
+    updateTimeBar();
+    showToast('⏰', '강제퇴실 모드', '20:40이 지나 입실/퇴실이 마감됐습니다.');
   }, ms);
 }
 
@@ -999,12 +1127,22 @@ function isStudyTime() {
   const mins = n.getHours() * 60 + n.getMinutes();
   return mins >= 17 * 60 + 20 && mins < 20 * 60 + 40;
 }
+function isForceOutTime() {
+  const n = new Date();
+  const mins = n.getHours() * 60 + n.getMinutes();
+  return mins >= 20 * 60 + 40;
+}
 function updateTimeBar() {
   const bar = document.getElementById('time-bar');
   const txt = document.getElementById('time-txt');
   if (cfg.skipTime) {
     bar.className = 'gps skip';
     txt.textContent = '시간 제한 건너뛰기 모드 (개발자)';
+    return;
+  }
+  if (isForceOutTime()) {
+    bar.className = 'gps force';
+    txt.textContent = '⚠️ 강제퇴실 모드 — 입실/퇴실 마감 (20:40)';
     return;
   }
   if (isStudyTime()) {
@@ -1020,12 +1158,22 @@ function updateTimeBar() {
 }
 
 // ===== 시계 =====
+let _lastTeacherDurRefresh = 0;
 function tick() {
   const n = new Date();
   document.getElementById('hdr-clock').textContent = n.toTimeString().slice(0,8);
   refreshDurChip();
   updateTimeBar();
   syncButtons();
+  // 교사 탭 재실 중인 학생의 재실시간 1분마다 갱신
+  const now = Date.now();
+  if (now - _lastTeacherDurRefresh >= 60000) {
+    const teacherTab = document.getElementById('tab-teacher');
+    if (teacherTab && teacherTab.classList.contains('active')) {
+      _lastTeacherDurRefresh = now;
+      renderTable();
+    }
+  }
 }
 function updateHdrDate() {
   document.getElementById('hdr-date').textContent = fmtDateKo(new Date());
@@ -1238,7 +1386,9 @@ async function loadMyRec(sid) {
 function syncButtons() {
   const sid = getSid();
   const rec = myTodayRec;
-  const base = !!sid && gpsOk && (isStudyTime() || cfg.skipTime);
+  const timeOk = isStudyTime() || cfg.skipTime;
+  const forced = !cfg.skipTime && isForceOutTime();
+  const base = !!sid && gpsOk && timeOk && !forced;
   // 입실 가능: 기록 없음 OR (1회차 완료 + 2회차 미시작)
   const canIn  = base && (!rec?.in || (rec?.out && !rec?.in2));
   // 퇴실 가능: 1회차 재실 중 OR 2회차 재실 중
@@ -1249,7 +1399,10 @@ function syncButtons() {
 
 // ===== 좌석 데이터 =====
 let seatsData = {};
+let seatsData2 = {};
 let pendingSeatId = null;
+let currentFloor = 1;
+let unsubSeats2 = null;
 
 async function loadSeats() {
   const dk = fmtDateKey(new Date());
@@ -1259,12 +1412,40 @@ async function loadSeats() {
   } catch(e) { seatsData = {}; }
 }
 
+async function loadSeats2() {
+  const dk = fmtDateKey(new Date());
+  try {
+    const snap = await get(ref(db, `yaja/seats2/${dk}`));
+    seatsData2 = snap.exists() ? snap.val() : {};
+  } catch(e) { seatsData2 = {}; }
+}
+
 function renderSeats() {
-  const mySeat = myTodayRec?.seat || null;
+  const mySeat = myTodayRec?.seat || myTodayRec?.seat2 || null;
   const mySid  = getSid();
-  document.querySelectorAll('.seat').forEach(el => {
+  document.querySelectorAll('#seat-modal .seat').forEach(el => {
     const id  = el.dataset.seat;
     const occ = seatsData[id];
+    el.classList.remove('occupied','mine');
+    el.querySelector('.seat-nm').textContent = '';
+    if (occ) {
+      if (occ.sid === mySid || id === mySeat) {
+        el.classList.add('mine');
+        el.querySelector('.seat-nm').textContent = occ.name;
+      } else {
+        el.classList.add('occupied');
+        el.querySelector('.seat-nm').textContent = occ.name;
+      }
+    }
+  });
+}
+
+function renderSeats2F() {
+  const mySeat = myTodayRec?.seat || myTodayRec?.seat2 || null;
+  const mySid  = getSid();
+  document.querySelectorAll('#seat-modal-2f .seat').forEach(el => {
+    const id  = el.dataset.seat;
+    const occ = seatsData2[id];
     el.classList.remove('occupied','mine');
     el.querySelector('.seat-nm').textContent = '';
     if (occ) {
@@ -1288,6 +1469,15 @@ function scaleSeatRoom() {
   const scale  = Math.min(availW / room.scrollWidth, availH / room.scrollHeight);
   if (scale < 1) room.style.zoom = Math.max(0.35, scale).toFixed(3);
 }
+function scaleSeatRoom2F() {
+  const room = document.querySelector('.room-wrap-2f');
+  if (!room) return;
+  room.style.zoom = '';
+  const availW = window.innerWidth - 40;
+  const availH = window.innerHeight - 130;
+  const scale  = Math.min(availW / room.scrollWidth, availH / room.scrollHeight);
+  if (scale < 1) room.style.zoom = Math.max(0.35, scale).toFixed(3);
+}
 function openSeatModal() {
   renderSeats();
   document.getElementById('seat-modal').style.display = 'flex';
@@ -1300,9 +1490,172 @@ function closeSeatModal(fromBack) {
   if (unsubSeats) { unsubSeats(); unsubSeats = null; }
   if (!fromBack) _pullModal();
 }
+function openSeatModal2F() {
+  buildSeatGrid2F();
+  renderSeats2F();
+  document.getElementById('seat-modal-2f').style.display = 'flex';
+  requestAnimationFrame(scaleSeatRoom2F);
+  _pushModal();
+}
+function closeSeatModal2F(fromBack) {
+  document.getElementById('seat-modal-2f').style.display = 'none';
+  pendingSeatId = null;
+  if (unsubSeats2) { unsubSeats2(); unsubSeats2 = null; }
+  if (!fromBack) _pullModal();
+}
+function buildSeatGrid2F() {
+  const leftTop = document.getElementById('seat-area-left-top');
+  if (leftTop.children.length > 0) return; // 이미 생성됨
+
+  const centerR1    = document.getElementById('seat-area-center-r1');     // 행1~2, 7열
+  const centerRest  = document.getElementById('seat-area-center-r3to12'); // 행3~12, 6열
+  const leftBot     = document.getElementById('seat-area-left-bot');
+  const blankC2     = document.getElementById('zone-blank-c2');
+  const area2326    = document.getElementById('seat-area-2326');      // 좌석 23~26
+  const blankC5     = document.getElementById('zone-blank-c5');
+  const area3738    = document.getElementById('seat-area-3738');      // 좌석 37~38
+  const teacherArea = document.getElementById('zone-teacher-area');
+  const row16center = document.getElementById('zone-row16-center');
+  const rightCol    = document.getElementById('seat-area-right');     // 8열: 좌석 16~22
+  const seat1Area   = document.getElementById('seat-area-1');
+
+  const WALL_CLASS = {}; // 23~26 벽은 실제 div로 대체
+
+  const makeSeat = (num, dis=0) => {
+    const id = `2F_${num}`;
+    const el = document.createElement('div');
+    el.className = 'seat' + (dis ? ' seat-2f-disabled' : '') + (WALL_CLASS[id] ? ' ' + WALL_CLASS[id] : '');
+    el.dataset.seat = id;
+    if (!dis) el.onclick = () => selectSeat(id);
+    el.innerHTML = `<span class="seat-id">${num}</span><span class="seat-nm"></span>`;
+    return el;
+  };
+  const blank = () => { const b=document.createElement('div'); b.className='grid-blank-2f'; return b; };
+  const place = (parent, el, col, row) => { el.style.gridColumn=col; el.style.gridRow=row; parent.appendChild(el); };
+
+  // === 왼쪽 벽 TOP (행1~10, C1): 1열×10행 (좌석7은 BOT으로 이동) ===
+  [[12,1,1],[11,3,0],[10,5,0],[9,7,0],[8,9,0]].forEach(([num,r,dis]) => {
+    const s = makeSeat(num, dis);
+    if (num !== 12) s.style.height = '56px';
+    place(leftTop, s, 1, r);
+  });
+  [2,4,6,8,10].forEach(r => place(leftTop, blank(), 1, r));
+
+  // === 중앙 R1 (행1~2, 7열): 좌석13·14 사이에 빈열(로컬3) 포함 ===
+  // 로컬열: C2→1, C3→2, [빈열→3], C4→4, C5→5, C6→6, C7→7
+  const r1Items = [[13,2,1],[14,4,1],[15,6,1]];
+  const r1Occ = new Set(r1Items.map(([,c,r])=>`${c},${r}`));
+  r1Items.forEach(([num,c,r]) => place(centerR1, makeSeat(num), c, r));
+  for(let r=1;r<=2;r++) for(let c=1;c<=7;c++)
+    if(!r1Occ.has(`${c},${r}`)) place(centerR1, blank(), c, r);
+
+  // === 중앙 R3~12 (6열×10행): 빈열 없음 ===
+  // 로컬열: C2→1, C3→2, C4→3, C5→4, C6→5, C7→6  / 행 오프셋 -2
+  const restItems = [
+    [31,2,1],[32,4,1],[43,5,1],
+    [30,2,3],[33,4,3],[42,5,3],
+    [29,2,5],[34,4,5],[41,5,5],
+    [28,2,7],[35,4,7],[40,5,7],
+    [27,2,9],[36,4,9],[39,5,9],
+  ];
+  const restOcc = new Set(restItems.map(([,c,r])=>`${c},${r}`));
+  restItems.forEach(([num,c,r]) => place(centerRest, makeSeat(num), c, r));
+  for(let r=1;r<=10;r++) for(let c=1;c<=6;c++)
+    if(!restOcc.has(`${c},${r}`)) place(centerRest, blank(), c, r);
+
+  // === 왼쪽 벽 BOT (C1): 1열×7행 (좌석7 추가 — 좌석25 행과 정렬, 1행 추가) ===
+  const seat7el = makeSeat(7); seat7el.style.height = '56px'; seat7el.style.marginTop = '-30px';
+  place(leftBot, seat7el,       1, 1); // 좌석25 행 정렬
+  place(leftBot, blank(),       1, 2); // gap
+  place(leftBot, makeSeat(6,1), 1, 3); // 행13 (비활성)
+  place(leftBot, blank(),       1, 4); // 행14~15
+  place(leftBot, makeSeat(5),   1, 5); // 행16
+  place(leftBot, blank(),       1, 6); // 8px gap (추가)
+  place(leftBot, blank(),       1, 7); // 추가 행
+
+  // === 빈칸 C2 (7행) ===
+  [1,2,3,4,5,6,7].forEach(r => place(blankC2, blank(), 1, r));
+
+  // === 좌석 23~26 (5열×5행, 나무 벽+코너 포함) ===
+  // 열: 1=벽  2=좌석열  3=벽  4=좌석열  5=벽
+  // 행: 1=벽  2=좌석행  3=벽  4=좌석행  5=벽
+  const wall2f = () => { const w=document.createElement('div'); w.className='wall-2f'; return w; };
+  place(area2326, makeSeat(25), 2, 2);
+  place(area2326, makeSeat(26), 4, 2);
+  place(area2326, makeSeat(24), 2, 4);
+  place(area2326, makeSeat(23), 4, 4);
+  // 벽 + 코너 (이어지는 느낌)
+  place(area2326, wall2f(), 2, 1); // 25 TOP
+  place(area2326, wall2f(), 3, 1); // 코너: 25 TOP-RIGHT
+  place(area2326, wall2f(), 3, 2); // 25-26 사이 세로벽
+  place(area2326, wall2f(), 3, 3); // 코너: 중앙 교차점
+  place(area2326, wall2f(), 5, 2); // 26 RIGHT
+  place(area2326, wall2f(), 5, 3); // 코너: 26 RIGHT-BOTTOM
+  place(area2326, wall2f(), 4, 3); // 26 BOTTOM
+  place(area2326, wall2f(), 2, 3); // 24 TOP
+  place(area2326, wall2f(), 3, 4); // 24-23 사이 세로벽
+  place(area2326, wall2f(), 3, 5); // 코너: 23 LEFT-BOTTOM
+  place(area2326, wall2f(), 4, 5); // 23 BOTTOM
+
+  // === 빈칸 C5 (7행) ===
+  [1,2,3,4,5,6,7].forEach(r => place(blankC5, blank(), 1, r));
+
+  // === 좌석 37~38 (7행): 37→row2(좌석26 정렬), 38→row4, 추가행→row6 ===
+  place(area3738, blank(),      1, 1); // 8px top wall
+  place(area3738, makeSeat(38), 1, 2); // 좌석26 행 정렬
+  place(area3738, blank(),      1, 3); // 8px gap
+  place(area3738, makeSeat(37), 1, 4); // 좌석24/23 행
+  place(area3738, blank(),      1, 5); // 8px gap
+  place(area3738, blank(),      1, 6); // 추가 행 (빈칸)
+  place(area3738, blank(),      1, 7); // 8px bottom
+
+  // === 교사 책상 영역 (C7): 1열×7행 (1행 추가) ===
+  [1,2,3,5,6,7].forEach(r => place(teacherArea, blank(), 1, r));
+  const desk = document.createElement('div');
+  desk.className = 'teacher-desk-2f';
+  desk.style.gridColumn = 1; desk.style.gridRow = 5;
+  desk.innerHTML = '교사<br>책상';
+  teacherArea.appendChild(desk);
+
+  // === 행16 중앙 (C2~C7): 6열×1행 ===
+  place(row16center, blank(),     1, 1);
+  place(row16center, makeSeat(4), 2, 1);
+  place(row16center, blank(),     3, 1); // 4-3 사이 빈열
+  place(row16center, makeSeat(3), 4, 1);
+  place(row16center, blank(),     5, 1);
+  place(row16center, makeSeat(2), 6, 1);
+  place(row16center, blank(),     7, 1);
+
+  // === 8열 (좌석 16~22+1): 상단 빈칸+10px 높이 ===
+  [[16,2],[17,4],[18,6],[19,8],[20,10],[21,12],[22,14]].forEach(([num,r]) => {
+    const s = makeSeat(num); s.style.height = '56px';
+    place(rightCol, s, 1, r);
+  });
+  [1,3,5,7,9,11,13].forEach(r => place(rightCol, blank(), 1, r));
+  seat1Area.appendChild(makeSeat(1));
+}
+// ── 층 선택 모달 ──
+function openFloorSelectModal() {
+  document.getElementById('floor-select-overlay').style.display = 'flex';
+  _pushModal();
+}
+function closeFloorSelectModal(fromBack) {
+  document.getElementById('floor-select-overlay').style.display = 'none';
+  if (!fromBack) _pullModal();
+}
+function selectFloor(floor) {
+  currentFloor = floor;
+  closeFloorSelectModal();
+  if (floor === 1) {
+    openSeatModal();
+  } else {
+    openSeatModal2F();
+  }
+}
 
 function selectSeat(id) {
-  if (seatsData[id]) return; // 이미 점유
+  const is2F = id.startsWith('2F_');
+  if (is2F ? seatsData2[id] : seatsData[id]) return; // 이미 점유
   pendingSeatId = id;
   document.getElementById('seat-confirm-sub').textContent = `${id}번 자리`;
   document.getElementById('seat-pin-input').value = '';
@@ -1377,21 +1730,21 @@ async function confirmSeatYes() {
     const isSession2 = !!(myTodayRec?.out && !myTodayRec?.in2);
     const inKey   = isSession2 ? 'in2'   : 'in';
     const seatKey = isSession2 ? 'seat2' : 'seat';
-    // 입실 시각을 serverTimestamp로 먼저 기록 후 나머지를 원자적으로 업데이트
-    const inRef = ref(db, `yaja/attendance/${dk}/${sid}/${inKey}`);
-    await set(inRef, serverTimestamp());
-    const snap = await get(inRef);
-    const inTs = snap.val();
-    // attendance + seats + pin 을 한 번에 원자적으로 기록
+    // in + seat + pin 을 한 번의 update로 원자적으로 기록
+    const inTs = Date.now();
+    const seatPath = currentFloor === 2 ? `yaja/seats2/${dk}/${pendingSeatId}` : `yaja/seats/${dk}/${pendingSeatId}`;
     await update(ref(db), {
+      [`yaja/attendance/${dk}/${sid}/${inKey}`]: serverTimestamp(),
       [`yaja/attendance/${dk}/${sid}/${seatKey}`]: pendingSeatId,
       [`yaja/attendance/${dk}/${sid}/pin`]: pin,
-      [`yaja/seats/${dk}/${pendingSeatId}`]: { sid, name },
+      [seatPath]: { sid, name },
     });
     myTodayRec = { ...(myTodayRec||{}), [inKey]: inTs, [seatKey]: pendingSeatId };
-    seatsData[pendingSeatId] = { sid, name };
+    if (currentFloor === 2) seatsData2[pendingSeatId] = { sid, name };
+    else seatsData[pendingSeatId] = { sid, name };
     document.getElementById('seat-confirm').style.display = 'none';
-    closeSeatModal();
+    if (currentFloor === 2) closeSeatModal2F();
+    else closeSeatModal();
     showMyChips(g,c,n); syncButtons();
     showToast('✅', '입실 완료!', `${name} · ${fmtTime(inTs)}`);
   } catch(e) {
@@ -1408,6 +1761,28 @@ async function confirmSeatYes() {
 
 // ===== 범용 Confirm 모달 =====
 let _confirmResolve = null;
+function showAlert(title, sub = '') {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById('generic-confirm-title').textContent = title;
+    const subEl = document.getElementById('generic-confirm-sub');
+    subEl.textContent = sub;
+    subEl.style.display = sub ? '' : 'none';
+    const noBtn = document.getElementById('generic-confirm-no');
+    const btns = noBtn.closest('.seat-confirm-btns');
+    noBtn.style.display = 'none';
+    btns.style.gridTemplateColumns = '1fr';
+    const gcEl = document.getElementById('generic-confirm');
+    document.body.appendChild(gcEl);
+    gcEl.style.display = 'flex';
+    _pushModal();
+    document.getElementById('generic-confirm-yes').onclick = () => {
+      noBtn.style.display = '';
+      btns.style.gridTemplateColumns = '';
+      _closeGenericConfirm(true);
+    };
+  });
+}
 function showConfirm(title, sub = '') {
   return new Promise(resolve => {
     _confirmResolve = resolve;
@@ -1465,15 +1840,21 @@ function showToast(icon, title, sub) {
 async function doCheckIn() {
   const sid = getSid(); if (!sid) return;
   if (!cfg.skipTime && !isStudyTime()) { showToast('⏰', '입실 불가', '야자 시간(17:20~20:40)에만 입실할 수 있습니다.'); return; }
-  await loadSeats();
-  openSeatModal();
-  // 실시간 좌석 동기화 시작
+  await Promise.all([loadSeats(), loadSeats2()]);
+  // 실시간 좌석 동기화 시작 (1층)
   if (unsubSeats) { unsubSeats(); unsubSeats = null; }
   const dk = fmtDateKey(new Date());
   unsubSeats = onValue(ref(db, `yaja/seats/${dk}`), snap => {
     seatsData = snap.exists() ? snap.val() : {};
     if (document.getElementById('seat-modal').style.display === 'flex') renderSeats();
-  });
+  }, err => { console.warn('[seats 리스너 오류]', err); });
+  // 실시간 좌석 동기화 시작 (2층)
+  if (unsubSeats2) { unsubSeats2(); unsubSeats2 = null; }
+  unsubSeats2 = onValue(ref(db, `yaja/seats2/${dk}`), snap => {
+    seatsData2 = snap.exists() ? snap.val() : {};
+    if (document.getElementById('seat-modal-2f').style.display === 'flex') renderSeats2F();
+  }, err => { console.warn('[seats2 리스너 오류]', err); });
+  openFloorSelectModal();
 }
 async function doCheckOut() {
   const sid = getSid(); if (!sid) return;
@@ -1496,19 +1877,24 @@ async function _doCheckOut() {
   btn.disabled = true;
   const dk = fmtDateKey(new Date());
   try {
-    const outRef = ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`);
-    await set(outRef, serverTimestamp());
-    const snap = await get(outRef);
     const currentSeat = rec?.[seatKey];
-    const updates = { [`yaja/attendance/${dk}/${sid}/${outKey}`]: snap.val() };
-    if (currentSeat) updates[`yaja/seats/${dk}/${currentSeat}`] = null;
+    const outTs = Date.now();
+    const updates = { [`yaja/attendance/${dk}/${sid}/${outKey}`]: serverTimestamp() };
+    if (currentSeat) {
+      const is2F = currentSeat.startsWith('2F_');
+      updates[`yaja/${is2F ? 'seats2' : 'seats'}/${dk}/${currentSeat}`] = null;
+    }
     await update(ref(db), updates);
-    if (currentSeat) delete seatsData[currentSeat];
-    myTodayRec = { ...rec, [outKey]: snap.val() };
+    if (currentSeat) {
+      const is2F = currentSeat.startsWith('2F_');
+      if (is2F) delete seatsData2[currentSeat];
+      else delete seatsData[currentSeat];
+    }
+    myTodayRec = { ...rec, [outKey]: outTs };
     const [g,c,n] = sid.split('-').map(Number);
     showMyChips(g,c,n);
     const name = students.find(s=>`${s.학년}-${s.반}-${s.번호}`===sid)?.이름 ?? '';
-    showStudentOutAlert(name, fmtTime(snap.val()));
+    showStudentOutAlert(name, fmtTime(outTs));
   } catch(e){ showToast('❌', '퇴실 실패', '네트워크를 확인해주세요.'); }
   finally { syncButtons(); setTimeout(() => { _selfCheckOut = false; }, 3000); }
 }
@@ -1542,13 +1928,14 @@ function showMyChips(g,c,n) {
 function refreshDurChip() {
   const rec = myTodayRec;
   if (!rec?.in) return;
-  // 1회차 재실 중이면 갱신
+  // 20:40 이후엔 해당 시각을 종료 기준으로 고정
+  const cutoff = new Date(); cutoff.setHours(20, 40, 0, 0);
+  const now = (cfg.skipTime || !isForceOutTime()) ? Date.now() : cutoff.getTime();
   if (rec.in && !rec.out) {
-    document.getElementById('val-dur').textContent = fmtDur(calcNetMs(rec.in, Date.now()));
+    document.getElementById('val-dur').textContent = fmtDur(calcNetMs(rec.in, now));
   }
-  // 2회차 재실 중이면 갱신
   if (rec.in2 && !rec.out2) {
-    document.getElementById('val-dur2').textContent = fmtDur(calcNetMs(rec.in2, Date.now()));
+    document.getElementById('val-dur2').textContent = fmtDur(calcNetMs(rec.in2, now));
   }
 }
 
@@ -1580,6 +1967,8 @@ function attachTeacherListener() {
   unsubTeacher = onValue(ref(db, `yaja/attendance/${dk}`), snap => {
     _lastDayRec = snap.exists() ? snap.val() : {};
     renderTable();
+  }, err => {
+    console.warn('[teacher 리스너 오류]', err);
   });
 }
 
@@ -1652,9 +2041,9 @@ function renderTable() {
     tbody.innerHTML = list.slice(start, end).map(s=>{
       const sid=`${s.학년}-${s.반}-${s.번호}`, rec=dayRec[sid];
       let badge='<span class="badge none">미출석</span>', inT='-', outT='-', dur='-';
-      if (rec?.in2 && !rec?.out2) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in2); }
+      if (rec?.in2 && !rec?.out2) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in2); dur=fmtDur(calcTotalDur(rec,Date.now())); }
       else if (rec?.out2) { badge='<span class="badge out">퇴실</span>'; inT=fmtTime(rec.in2); outT=fmtTime(rec.out2); dur=fmtDur(calcTotalDur(rec,null)); }
-      else if (rec?.in && !rec?.out) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in); }
+      else if (rec?.in && !rec?.out) { badge='<span class="badge in">재실 중</span>'; inT=fmtTime(rec.in); dur=fmtDur(calcTotalDur(rec,Date.now())); }
       else if (rec?.out) { badge='<span class="badge out">퇴실</span>'; inT=fmtTime(rec.in); outT=fmtTime(rec.out); dur=fmtDur(calcTotalDur(rec,null)); }
       const numStr=String(s.번호).padStart(2,'0');
       // 현재 좌석: 재실 중인 회차의 seat 값
@@ -1670,7 +2059,9 @@ function renderTable() {
           return `<span style="color:var(--red-d)">${escapeHtml(p.note)}${pen}</span> <span style="color:var(--hint)">${ts}</span>`;
         }).join('<br>');
       }
-      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline;text-align:left" onclick="openSrecModal('${sid}')">${escapeHtml(s.이름)}</td><td>${badge}</td><td>${seatTd}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
+      const isDev = document.getElementById('dev-container').classList.contains('show');
+      const delBtn = isDev ? `<button class="dev-del-btn" onclick="event.stopPropagation();devDeleteRecord('${sid}','${escapeHtml(s.이름)}')" title="기록 삭제">🗑</button>` : '';
+      return `<tr><td style="color:var(--muted);font-size:12px">${s.학년}-${s.반}-${numStr}</td><td style="font-weight:700;cursor:pointer;color:var(--blue);text-decoration:underline;text-align:left" onclick="openSrecModal('${sid}')"><span class="td-name-wrap">${escapeHtml(s.이름)}${delBtn}</span></td><td>${badge}</td><td>${seatTd}</td><td>${inT}</td><td>${outT}</td><td>${dur}</td><td class="td-memo">${memo}</td></tr>`;
     }).join('');
     renderPagination();
   }
@@ -1854,6 +2245,21 @@ function devFillNum() {
     document.getElementById('del-name-preview').textContent = found ? `${g}학년 ${c}반 ${found.이름}` : '';
   };
 }
+// 출석 기록 삭제 시 연관된 좌석 데이터도 함께 제거
+async function _clearSeatForRec(rec, dk) {
+  if (!rec) return;
+  const updates = {};
+  if (rec.seat) {
+    const is2F = rec.seat.startsWith('2F_');
+    updates[`yaja/${is2F ? 'seats2' : 'seats'}/${dk}/${rec.seat}`] = null;
+  }
+  if (rec.seat2) {
+    const is2F = rec.seat2.startsWith('2F_');
+    updates[`yaja/${is2F ? 'seats2' : 'seats'}/${dk}/${rec.seat2}`] = null;
+  }
+  if (Object.keys(updates).length) await update(ref(db), updates);
+}
+
 async function deleteStudentRecord() {
   const g = document.getElementById('del-grade').value;
   const c = document.getElementById('del-class').value;
@@ -1866,10 +2272,25 @@ async function deleteStudentRecord() {
   const sid = `${g}-${c}-${n}`;
   const dk = fmtDateKey(new Date());
   try {
+    const snap = await get(ref(db, `yaja/attendance/${dk}/${sid}`));
+    await _clearSeatForRec(snap.exists() ? snap.val() : null, dk);
     await set(ref(db, `yaja/attendance/${dk}/${sid}`), null);
     msg.textContent = `${s.이름} 기록 삭제 완료`; msg.style.color='var(--green-d)';
     renderTable();
   } catch(e) { msg.textContent = '삭제 실패: ' + e.message; msg.style.color='var(--red-d)'; }
+}
+
+async function devDeleteRecord(sid, name) {
+  if (!await showConfirm(`${escapeHtml(name)} 오늘 기록 삭제`, '삭제 후 복구할 수 없습니다.')) return;
+  const dk = fmtDateKey(viewDate);
+  try {
+    const snap = await get(ref(db, `yaja/attendance/${dk}/${sid}`));
+    await _clearSeatForRec(snap.exists() ? snap.val() : null, dk);
+    await set(ref(db, `yaja/attendance/${dk}/${sid}`), null);
+    renderTable();
+  } catch(e) {
+    await showAlert('삭제 실패', e.message);
+  }
 }
 
 // ===== GitHub CSV 관리 =====
@@ -1901,13 +2322,21 @@ async function openTeacherSeatView() {
   const dk = fmtDateKey(viewDate);
   document.getElementById('t-seat-date-label').textContent = `좌석 현황 — ${fmtDateKo(viewDate)}`;
 
-  // 해당 날짜의 좌석 데이터 로드
+  // 1층 데이터 로드
   let seatSnap = {};
   try {
     const snap = await get(ref(db, `yaja/seats/${dk}`));
     seatSnap = snap.exists() ? snap.val() : {};
   } catch(e) {}
-  _tSeatSnap = seatSnap; // 교사 좌석 클릭용으로 저장
+  _tSeatSnap = seatSnap;
+
+  // 2층 데이터 로드
+  let seatSnap2 = {};
+  try {
+    const snap2 = await get(ref(db, `yaja/seats2/${dk}`));
+    seatSnap2 = snap2.exists() ? snap2.val() : {};
+  } catch(e) {}
+  _tSeatSnap2 = seatSnap2;
 
   // 좌석 HTML 생성 (room-wrap 구조 복제, 읽기 전용)
   const seatIds = [
@@ -1922,7 +2351,7 @@ async function openTeacherSeatView() {
   function makeSeat(id) {
     const occ = seatSnap[id];
     const cls = occ ? 'seat seat-ro occupied' : 'seat seat-ro';
-    const nm  = occ ? occ.name : '';
+    const nm  = occ ? escapeHtml(occ.name) : '';
     const click = occ ? ` onclick="teacherSeatClick('${id}')"` : '';
     return `<div class="${cls}" data-seat="${id}"${click}><span class="seat-id">${id}</span><span class="seat-nm">${nm}</span></div>`;
   }
@@ -1943,6 +2372,7 @@ async function openTeacherSeatView() {
     <div class="room-entrance">입구</div>
   `;
 
+  // 1층 HTML
   document.getElementById('t-seat-room-wrap').innerHTML = `
     <div class="room-wrap">
       <div class="t-grid">${tSeats}</div>
@@ -1950,18 +2380,66 @@ async function openTeacherSeatView() {
     </div>
   `;
 
+  // 2층 레이아웃 — 학생용 room-wrap-2f를 그대로 clone
+  buildSeatGrid2F(); // 아직 안 만들어졌으면 생성
+  const src2f = document.querySelector('.room-wrap-2f');
+  const clone2f = src2f.cloneNode(true);
+  // clone 내부 ID 제거 (중복 방지)
+  clone2f.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+  // 모든 좌석을 읽기전용으로 전환 + 초기 상태 반영
+  clone2f.querySelectorAll('.seat:not(.seat-2f-disabled)').forEach(el => {
+    el.classList.add('seat-ro');
+    el.removeAttribute('onclick');
+    const id = el.dataset.seat;
+    const occ = seatSnap2[id];
+    if (occ) {
+      el.classList.add('occupied');
+      el.querySelector('.seat-nm').textContent = occ.name;
+      el.setAttribute('onclick', `teacherSeatClick('${id}')`);
+    } else {
+      el.classList.remove('occupied');
+      el.querySelector('.seat-nm').textContent = '';
+    }
+  });
+  const wrap2f = document.getElementById('t-seat-room-wrap-2f');
+  wrap2f.innerHTML = '';
+  wrap2f.appendChild(clone2f);
+
+  // 탭 초기 상태 (1층)
+  _tFloor = 1;
+  document.getElementById('t-tab-1f').classList.add('active');
+  document.getElementById('t-tab-2f').classList.remove('active');
+  document.getElementById('t-seat-room-wrap').classList.remove('t-seat-room-wrap-hidden');
+  document.getElementById('t-seat-room-wrap-2f').classList.add('t-seat-room-wrap-hidden');
+
   document.getElementById('t-seat-modal').classList.add('show');
   _pushModal();
 
-  // 실시간 좌석 동기화 시작
+  // 실시간 동기화: 1층
   if (unsubTSeats) { unsubTSeats(); unsubTSeats = null; }
   unsubTSeats = onValue(ref(db, `yaja/seats/${dk}`), snap => {
     _updateTSeats(snap.exists() ? snap.val() : {});
-  });
+  }, err => { console.warn('[tSeats 리스너 오류]', err); });
+
+  // 실시간 동기화: 2층
+  if (unsubTSeats2) { unsubTSeats2(); unsubTSeats2 = null; }
+  unsubTSeats2 = onValue(ref(db, `yaja/seats2/${dk}`), snap => {
+    _updateTSeats2(snap.exists() ? snap.val() : {});
+  }, err => { console.warn('[tSeats2 리스너 오류]', err); });
 }
+
+function switchTSeatFloor(floor) {
+  _tFloor = floor;
+  document.getElementById('t-tab-1f').classList.toggle('active', floor === 1);
+  document.getElementById('t-tab-2f').classList.toggle('active', floor === 2);
+  document.getElementById('t-seat-room-wrap').classList.toggle('t-seat-room-wrap-hidden', floor !== 1);
+  document.getElementById('t-seat-room-wrap-2f').classList.toggle('t-seat-room-wrap-hidden', floor !== 2);
+}
+
 function closeTeacherSeatView(fromBack) {
   document.getElementById('t-seat-modal').classList.remove('show');
-  if (unsubTSeats) { unsubTSeats(); unsubTSeats = null; }
+  if (unsubTSeats)  { unsubTSeats();  unsubTSeats  = null; }
+  if (unsubTSeats2) { unsubTSeats2(); unsubTSeats2 = null; }
   if (!fromBack) _pullModal();
 }
 
@@ -1981,10 +2459,27 @@ function _updateTSeats(newSnap) {
     }
   });
 }
+function _updateTSeats2(newSnap) {
+  _tSeatSnap2 = newSnap;
+  document.querySelectorAll('#t-seat-room-wrap-2f .seat-ro').forEach(el => {
+    const id = el.dataset.seat;
+    const occ = newSnap[id];
+    if (occ) {
+      el.classList.add('occupied');
+      el.querySelector('.seat-nm').textContent = occ.name;
+      el.setAttribute('onclick', `teacherSeatClick('${id}')`);
+    } else {
+      el.classList.remove('occupied');
+      el.querySelector('.seat-nm').textContent = '';
+      el.removeAttribute('onclick');
+    }
+  });
+}
 
 // ===== 교사 좌석 클릭 → 학생 액션 패널 =====
 function teacherSeatClick(seatId) {
-  const occ = _tSeatSnap[seatId];
+  const snap = seatId.startsWith('2F_') ? _tSeatSnap2 : _tSeatSnap;
+  const occ = snap[seatId];
   if (!occ) return;
   tSeatActionData = { seatId, sid: occ.sid, name: occ.name };
   const [g, c, n] = occ.sid.split('-').map(Number);
@@ -2024,9 +2519,14 @@ async function teacherCheckOut() {
   const isSession2 = !!(rec?.in2 && !rec?.out2);
   const outKey = isSession2 ? 'out2' : 'out';
   try {
-    await set(ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`), serverTimestamp());
-    await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
-    delete _tSeatSnap[seatId];
+    const is2F = seatId.startsWith('2F_');
+    const seatPath = `yaja/${is2F ? 'seats2' : 'seats'}/${dk}/${seatId}`;
+    await update(ref(db), {
+      [`yaja/attendance/${dk}/${sid}/${outKey}`]: serverTimestamp(),
+      [seatPath]: null,
+    });
+    if (is2F) delete _tSeatSnap2[seatId];
+    else delete _tSeatSnap[seatId];
     // 좌석 현황 즉각 반영
     const seatEl = document.querySelector(`.seat-ro[data-seat="${seatId}"]`);
     if (seatEl) {
@@ -2071,13 +2571,19 @@ async function confirmForceOut() {
   const isSession2 = !!(rec?.in2 && !rec?.out2);
   const outKey = isSession2 ? 'out2' : 'out';
   try {
-    await set(ref(db, `yaja/attendance/${dk}/${sid}/${outKey}`), serverTimestamp());
-    await set(ref(db, `yaja/seats/${dk}/${seatId}`), null);
-    delete _tSeatSnap[seatId];
-    const penSnap = await get(ref(db, `yaja/attendance/${dk}/${sid}/penalties`));
+    const is2F = seatId.startsWith('2F_');
+    const seatPath = `yaja/${is2F ? 'seats2' : 'seats'}/${dk}/${seatId}`;
+    await update(ref(db), {
+      [`yaja/attendance/${dk}/${sid}/${outKey}`]: serverTimestamp(),
+      [seatPath]: null,
+    });
+    if (is2F) delete _tSeatSnap2[seatId];
+    else delete _tSeatSnap[seatId];
+    const penRef = ref(db, `yaja/attendance/${dk}/${sid}/penalties`);
+    const penSnap = await get(penRef);
     const existing = penSnap.exists() ? penSnap.val() : [];
     existing.push({ ts: Date.now(), min: penaltyMin, note: `자리이탈: ${noteRaw}` });
-    await set(ref(db, `yaja/attendance/${dk}/${sid}/penalties`), existing);
+    await set(penRef, existing);
     closeForceOutModal();
     closeTeacherSeatAction();
   } catch(e) {
@@ -2140,7 +2646,13 @@ async function confirmResetPW() {
   btn.disabled = false;
 }
 async function clearAll() {
-  try { await set(ref(db, 'yaja/attendance'), null); } catch(e){ console.warn(e); }
+  try {
+    await Promise.all([
+      set(ref(db, 'yaja/attendance'), null),
+      set(ref(db, 'yaja/seats'), null),
+      set(ref(db, 'yaja/seats2'), null),
+    ]);
+  } catch(e){ console.warn(e); }
   _lastDayRec = {};
   renderTable();
   setXlMsg('출석 데이터가 초기화됐습니다', 'var(--muted)');
@@ -2257,12 +2769,14 @@ function switchTab(t) {
 
 // ===== 교사 탭 비밀번호 (Firebase Authentication) =====
 let teacherUnlocked = false;
+let _teacherPwFails = 0;
 
 function tryTeacherTab() {
   if (teacherUnlocked) {
     showTeacherContent();
     return;
   }
+  _teacherPwFails = 0;
   switchTab('teacher');
   document.getElementById('teacher-lock').style.display = 'flex';
   document.getElementById('teacher-content').classList.remove('unlocked');
@@ -2281,14 +2795,39 @@ async function checkPW() {
     await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, TEACHER_EMAIL, val);
     teacherUnlocked = true;
+    _teacherPwFails = 0;
     document.getElementById('pw-input').value = '';
     err.textContent = '';
     showTeacherContent();
   } catch(e) {
-    err.textContent = '비밀번호가 올바르지 않습니다.';
+    _teacherPwFails++;
     document.getElementById('pw-input').value = '';
+    if (_teacherPwFails >= 3) {
+      err.textContent = '';
+      try {
+        await push(ref(db, 'yaja/pw_fail_logs'), {
+          ts: serverTimestamp(),
+          ua: navigator.userAgent,
+          screen: `${screen.width}x${screen.height}`,
+          lang: navigator.language,
+          count: _teacherPwFails,
+        });
+      } catch(_) {}
+      await showAlert(
+        `${_teacherPwFails}회 틀리셨습니다.`,
+        '학생들의 무분별한 교사탭 비밀번호 입력을 방지하기 위해 단말기 로그를 서버에 기록합니다.'
+      );
+    } else if (_teacherPwFails === 2) {
+      err.textContent = '';
+      await showAlert(
+        `2회 틀리셨습니다.`,
+        '3회 이상부터는 단말기 로그를 서버에 기록합니다.'
+      );
+    } else {
+      err.textContent = '비밀번호가 올바르지 않습니다.';
+      setTimeout(()=>{ err.textContent=''; }, 2500);
+    }
     document.getElementById('pw-input').focus();
-    setTimeout(()=>{ err.textContent=''; }, 2500);
   } finally {
     btn.disabled = false;
     btn.textContent = '확인';
@@ -2356,6 +2895,7 @@ async function confirmDevPW() {
     await signInWithEmailAndPassword(auth, DEV_EMAIL, val);
     closeDevPwModal();
     document.getElementById('dev-container').classList.add('show');
+    renderTable();
   } catch(e) {
     err.textContent = '비밀번호가 올바르지 않습니다.';
     document.getElementById('dev-pw-input').value = '';
@@ -2368,15 +2908,10 @@ async function confirmDevPW() {
 }
 function lockDevContainer() {
   document.getElementById('dev-container').classList.remove('show');
+  renderTable();
 }
 
 // ===== 유틸 =====
-function showMsg(id, txt) {
-  const el=document.getElementById(id);
-  if (!el) return;
-  el.textContent=txt;
-  setTimeout(()=>el.textContent='',3000);
-}
 
 // ===== auth 상태 변화 시 리스너 재구독 =====
 // 교사 로그인/로그아웃 시 auth가 바뀌면 onValue 리스너가 permission_denied로 죽음
@@ -2444,6 +2979,7 @@ if (!isInStandalone) {
 }
 window.addEventListener('resize', () => {
   if (document.getElementById('seat-modal').style.display !== 'none') scaleSeatRoom();
+  if (document.getElementById('seat-modal-2f').style.display !== 'none') scaleSeatRoom2F();
 });
 
 // 전역 노출 (type="module" 스코프 문제 해결)
@@ -2457,14 +2993,15 @@ Object.assign(window, {
   toggleSkipGPS, toggleSkipTime, persistCfg,
   reloadCsv, clearAll, downloadRange,
   openResetModal, closeResetModal, confirmResetPW, toggleResetPW,
-  openTeacherSeatView, closeTeacherSeatView,
+  openTeacherSeatView, closeTeacherSeatView, switchTSeatFloor,
   teacherSeatClick, closeTeacherSeatAction, teacherCheckOut,
   openForceOutModal, closeForceOutModal, confirmForceOut,
-  selectSeat, confirmSeatYes, confirmSeatNo, closeSeatModal,
+  selectSeat, confirmSeatYes, confirmSeatNo, closeSeatModal, closeSeatModal2F,
+  openFloorSelectModal, closeFloorSelectModal, selectFloor,
   toggleSeatPin, toggleCheckoutPin, closeCheckoutPin, confirmCheckoutPin,
   openSrecModal, closeSrecModal, _closeGenericConfirm, closeTeacherOutAlert, closeStudentOutAlert,
   setSort,
-  devFillClass, devFillNum, deleteStudentRecord, devApplyGPS, devClearCustomGPS, devSaveSchoolCoords
+  devFillClass, devFillNum, deleteStudentRecord, devDeleteRecord, devApplyGPS, devClearCustomGPS, devSaveSchoolCoords
 });
 
 /* ── 뒤로가기로 모달 닫기 ── */
@@ -2485,7 +3022,9 @@ Object.assign(window, {
       { id: 'seat-confirm',         css: 'flex', fn: () => { document.getElementById('seat-confirm').style.display='none'; } },
       { id: 't-force-overlay',       css: 'flex', fn: () => closeForceOutModal(true) },
       { id: 't-seat-action-overlay', css: 'flex', fn: () => closeTeacherSeatAction(true) },
+      { id: 'floor-select-overlay',  css: 'flex', fn: () => closeFloorSelectModal(true) },
       { id: 'seat-modal',            css: 'flex', fn: () => closeSeatModal(true)   },
+      { id: 'seat-modal-2f',         css: 'flex', fn: () => closeSeatModal2F(true) },
       { id: 't-seat-modal',          cls: 'show', fn: () => closeTeacherSeatView(true) },
       { id: 'reset-overlay',         cls: 'show', fn: () => closeResetModal(true)  },
       { id: 'dev-pw-overlay',        cls: 'show', fn: () => closeDevPwModal(true)  },
@@ -2557,6 +3096,70 @@ Object.assign(window, {
   resetTimer();
 })();
 </script>
+
+<!-- ===== 층 선택 모달 ===== -->
+<div class="floor-select-overlay" id="floor-select-overlay">
+  <div class="floor-select-box">
+    <div class="floor-select-title">🏫 층 선택</div>
+    <div class="floor-select-sub">입실할 층을 선택하세요</div>
+    <div class="floor-btns">
+      <button type="button" class="floor-btn floor-btn-1" onclick="selectFloor(1)">1층</button>
+      <button type="button" class="floor-btn floor-btn-2" onclick="selectFloor(2)">2층</button>
+    </div>
+    <button type="button" class="floor-select-cancel" onclick="closeFloorSelectModal()">취소</button>
+  </div>
+</div>
+
+<!-- ===== 2층 좌석 선택 모달 ===== -->
+<div class="seat-modal-2f" id="seat-modal-2f">
+  <div class="seat-modal-2f-box">
+    <div class="seat-modal-2f-hdr">
+      <div class="seat-modal-2f-title">🪑 좌석 선택 (2층)</div>
+      <div class="seat-modal-legend">
+        <span class="legend-free">■</span> 빈 자리 &nbsp;·&nbsp;
+        <span class="legend-occ">■</span> 사용 중 &nbsp;·&nbsp;
+        <span class="legend-mine">■</span> 내 자리
+      </div>
+    </div>
+    <div class="room-wrap-2f">
+      <div class="window-col-2f">창문</div>
+      <!-- zone-lc: 왼쪽벽 + 중앙 영역 -->
+      <div class="zone-lc">
+        <!-- 행 1~12 구역 -->
+        <div class="zone-rows1to12">
+          <div class="seat-grid-2f seat-area-left-top" id="seat-area-left-top"></div>
+          <div class="seat-center-wrap">
+            <div class="seat-grid-2f seat-area-center-r1"     id="seat-area-center-r1"></div>
+            <div class="seat-grid-2f seat-area-center-r3to12" id="seat-area-center-r3to12"></div>
+          </div>
+        </div>
+        <!-- 행 13~16 구역 -->
+        <div class="zone-rows13to16">
+          <div class="seat-grid-2f seat-area-left-bot" id="seat-area-left-bot"></div>
+          <div class="zone-center-bot">
+            <div class="zone-center-bot-inner">
+              <div class="seat-grid-2f zone-blank-col"  id="zone-blank-c2"></div>
+              <div class="seat-grid-2f seat-area-2326"  id="seat-area-2326"></div>
+              <div class="seat-grid-2f zone-blank-col"  id="zone-blank-c5"></div>
+              <div class="seat-grid-2f seat-area-3738"  id="seat-area-3738"></div>
+              <div class="seat-grid-2f zone-teacher-area" id="zone-teacher-area"></div>
+            </div>
+            <div class="zone-row15-blank"></div>
+            <div class="seat-grid-2f zone-row16-center" id="zone-row16-center"></div>
+          </div>
+        </div>
+      </div>
+      <!-- 8열 (좌석 16~22): 독립 div -->
+      <div class="zone-right-col">
+        <div class="seat-grid-2f seat-area-right" id="seat-area-right"></div>
+        <div id="seat-area-1" class="seat-area-1"></div>
+        <div class="entrance-2f">출입문</div>
+
+      </div>
+    </div>
+    <button type="button" class="btn-seat-cancel" onclick="closeSeatModal2F()">취소</button>
+  </div>
+</div>
 
 <!-- ===== 좌석 선택 모달 ===== -->
 <div class="seat-modal" id="seat-modal">
@@ -2666,11 +3269,16 @@ Object.assign(window, {
       <span class="t-seat-title" id="t-seat-date-label">좌석 현황</span>
       <button type="button" class="t-seat-close" onclick="closeTeacherSeatView()">✕</button>
     </div>
+    <div class="t-seat-floor-tabs">
+      <button type="button" class="t-floor-tab active" id="t-tab-1f" onclick="switchTSeatFloor(1)">1층</button>
+      <button type="button" class="t-floor-tab" id="t-tab-2f" onclick="switchTSeatFloor(2)">2층</button>
+    </div>
     <div class="t-seat-legend">
       <span><span class="leg-free">■</span> 빈 자리</span>
       <span><span class="leg-occ">■</span> 사용 중</span>
     </div>
     <div id="t-seat-room-wrap"></div>
+    <div id="t-seat-room-wrap-2f" class="t-seat-room-wrap-hidden"></div>
   </div>
 </div>
 
