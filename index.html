@@ -201,7 +201,7 @@ th.sort-desc::after{content:' ▼';font-size:9px;color:var(--blue);}
 /* ── 교사 좌석 현황 모달 ── */
 .t-seat-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px;}
 .t-seat-modal.show{display:flex;}
-.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;max-width:calc(100vw - 24px);overflow:auto;width:fit-content;}
+.t-seat-box{background:#fff;border-radius:16px;padding:16px;max-height:90vh;max-width:calc(100vw - 24px);overflow:hidden;width:fit-content;}
 @media (orientation:portrait){
   .t-seat-modal{padding:8px;}
   .t-seat-box{max-height:90vh;overflow:auto;}
@@ -1460,6 +1460,23 @@ function renderSeats2F() {
   });
 }
 
+function scaleTeacherRoom(floor) {
+  const f = floor ?? _tFloor ?? 1;
+  const room = f === 1
+    ? document.querySelector('#t-seat-room-wrap .room-wrap')
+    : document.querySelector('#t-seat-room-wrap-2f .room-wrap-2f');
+  if (!room) return;
+  room.style.zoom = '';
+  const box = document.getElementById('t-seat-modal').querySelector('.t-seat-box');
+  const overhead = box.querySelector('.t-seat-hdr').offsetHeight
+    + box.querySelector('.t-seat-floor-tabs').offsetHeight
+    + box.querySelector('.t-seat-legend').offsetHeight
+    + 48; // padding(32) + gap(16)
+  const availH = Math.min(window.innerHeight * 0.9, window.innerHeight) - overhead;
+  const availW = window.innerWidth - 24 - 32;
+  const scale = Math.min(availW / room.scrollWidth, availH / room.scrollHeight);
+  if (scale < 1) room.style.zoom = Math.max(0.3, scale).toFixed(3);
+}
 function scaleSeatRoom() {
   const room = document.querySelector('.room-wrap');
   if (!room) return;
@@ -2338,6 +2355,33 @@ async function openTeacherSeatView() {
   } catch(e) {}
   _tSeatSnap2 = seatSnap2;
 
+  // 출석 기록 대조 — 이미 퇴실한 학생 좌석 잔류 데이터 자동 정리
+  try {
+    const attendSnap = await get(ref(db, `yaja/attendance/${dk}`));
+    const attendData = attendSnap.exists() ? attendSnap.val() : {};
+    const staleUpdates = {};
+
+    const checkStale = (snap, prefix) => {
+      Object.entries(snap).forEach(([seatId, entry]) => {
+        if (!entry?.sid) return;
+        const rec = attendData[entry.sid];
+        // seat2 필드와 일치하면 2회차 세션, 아니면 1회차 세션
+        const isSession2 = rec?.seat2 === seatId;
+        const stillIn = isSession2 ? (rec?.in2 && !rec?.out2) : (rec?.in && !rec?.out);
+        if (!stillIn) {
+          staleUpdates[`yaja/${prefix}/${dk}/${seatId}`] = null;
+          delete snap[seatId];
+        }
+      });
+    };
+
+    checkStale(seatSnap,  'seats');
+    checkStale(seatSnap2, 'seats2');
+    if (Object.keys(staleUpdates).length) {
+      await update(ref(db), staleUpdates).catch(() => {});
+    }
+  } catch(e) {}
+
   // 좌석 HTML 생성 (room-wrap 구조 복제, 읽기 전용)
   const seatIds = [
     'T1','T2','T3','T4','T5','T6','T7',
@@ -2413,6 +2457,7 @@ async function openTeacherSeatView() {
   document.getElementById('t-seat-room-wrap-2f').classList.add('t-seat-room-wrap-hidden');
 
   document.getElementById('t-seat-modal').classList.add('show');
+  requestAnimationFrame(() => scaleTeacherRoom(1));
   _pushModal();
 
   // 실시간 동기화: 1층
@@ -2434,6 +2479,7 @@ function switchTSeatFloor(floor) {
   document.getElementById('t-tab-2f').classList.toggle('active', floor === 2);
   document.getElementById('t-seat-room-wrap').classList.toggle('t-seat-room-wrap-hidden', floor !== 1);
   document.getElementById('t-seat-room-wrap-2f').classList.toggle('t-seat-room-wrap-hidden', floor !== 2);
+  requestAnimationFrame(() => scaleTeacherRoom(floor));
 }
 
 function closeTeacherSeatView(fromBack) {
@@ -2980,6 +3026,7 @@ if (!isInStandalone) {
 window.addEventListener('resize', () => {
   if (document.getElementById('seat-modal').style.display !== 'none') scaleSeatRoom();
   if (document.getElementById('seat-modal-2f').style.display !== 'none') scaleSeatRoom2F();
+  if (document.getElementById('t-seat-modal').classList.contains('show')) scaleTeacherRoom();
 });
 
 // 전역 노출 (type="module" 스코프 문제 해결)
@@ -3328,7 +3375,7 @@ Object.assign(window, {
     <div class="seat-confirm-sub" id="seat-confirm-sub"></div>
     <div class="pin-label">퇴실 시 사용할 PIN 설정 (숫자 4자리)</div>
     <div class="pin-wrap">
-      <input class="pin-input" type="password" id="seat-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+      <input class="pin-input" type="password" id="seat-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')confirmSeatYes()">
       <button type="button" class="pin-toggle" onclick="toggleSeatPin()">👁</button>
     </div>
     <div id="seat-confirm-err" class="modal-err"></div>
@@ -3345,7 +3392,7 @@ Object.assign(window, {
     <div class="seat-confirm-title">퇴실 확인</div>
     <div class="seat-confirm-sub">입실 시 설정한 PIN을 입력하세요</div>
     <div class="pin-wrap">
-      <input class="pin-input" type="password" id="checkout-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+      <input class="pin-input" type="password" id="checkout-pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')confirmCheckoutPin()">
       <button type="button" class="pin-toggle" onclick="toggleCheckoutPin()">👁</button>
     </div>
     <div id="checkout-pin-err" class="modal-err"></div>
