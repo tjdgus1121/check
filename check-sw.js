@@ -1,8 +1,12 @@
-const CACHE = 'yaja-v2';
+const CACHE = 'yaja-v3';
 const ASSETS = [
   './check.html',
-  './faviconlogo.png',
+  './check.webmanifest',
+  './check-sw.js',
+  './faviconstudy.png',
   './favicon.ico',
+  './share.png',
+  './more.png',
 ];
 
 self.addEventListener('install', e => {
