@@ -1,4 +1,4 @@
-const CACHE = 'yaja-v3';
+const CACHE = 'yaja-v4';
 const ASSETS = [
   './check.html',
   './check.webmanifest',
